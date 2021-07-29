@@ -26,13 +26,14 @@ contract FlightSuretyApp {
 
     address private contractOwner;          // Account used to deploy contract
 
-    struct Flight {
-        bool isRegistered;
-        uint8 statusCode;
-        uint256 updatedTimestamp;        
-        address airline;
-    }
-    mapping(bytes32 => Flight) private flights;
+    // import FlightSuretyData as showed with ExerciseC6C
+    FlightSuretyData flightSuretyData;
+
+    // ether var
+    // each arline has to submit 10 ether
+    uint constant AIRLINE_SUBMIT_VALUE = 10 ether;
+    uint constant INSURANCE_VALUE_MAX = 1 ether;
+    uint constant INSURANCE_MULT = 150; 
 
  
     /********************************************************************************************/
@@ -50,7 +51,7 @@ contract FlightSuretyApp {
     modifier requireIsOperational() 
     {
          // Modify to call data contract's status
-        require(true, "Contract is currently not operational");  
+        require(flightSuretyData.isOperational(), "Contract is currently not operational");  
         _;  // All modifiers require an "_" which indicates where the function body will be added
     }
 
@@ -62,6 +63,19 @@ contract FlightSuretyApp {
         require(msg.sender == contractOwner, "Caller is not contract owner");
         _;
     }
+    /********************************************************************************************/
+    /*                                       EVENTS                                        */
+    /********************************************************************************************/
+
+    event RegisterAirlineEvent(address _airlineAddress);
+
+    event RegisterFligthEvent(address _flightAddress);
+
+    event RegisterPassengerEvent(address _passengerAddress);
+
+    event BoughtInsuranceEvent(address _passenger);
+
+    event ProcessedFlightEvent(string _flight);
 
     /********************************************************************************************/
     /*                                       CONSTRUCTOR                                        */
@@ -73,10 +87,13 @@ contract FlightSuretyApp {
     */
     constructor
                                 (
+                                    address dataContract
                                 ) 
                                 public 
     {
         contractOwner = msg.sender;
+        //exerciseC6C = ExerciseC6C(dataContract);
+        flightSuretyData = FlightSuretyData(dataContract);
     }
 
     /********************************************************************************************/
@@ -85,10 +102,9 @@ contract FlightSuretyApp {
 
     function isOperational() 
                             public 
-                            pure 
                             returns(bool) 
     {
-        return true;  // Modify to call data contract's status
+        return flightSuretyData.isOperational();  // Modify to call data contract's status
     }
 
     /********************************************************************************************/
@@ -100,13 +116,15 @@ contract FlightSuretyApp {
     * @dev Add an airline to the registration queue
     *
     */   
-    function registerAirline
-                            (   
-                            )
-                            external
-                            pure
-                            returns(bool success, uint256 votes)
-    {
+    function registerAirline (   
+        address _addressAirline)
+        external
+        requireIsOperational 
+        returns(bool success, uint256 votes)
+    {   
+        flightSuretyData.registerAirline(_addressAirline);
+        emit RegisterAirlineEvent(_addressAirline);
+
         return (success, 0);
     }
 
@@ -115,13 +133,34 @@ contract FlightSuretyApp {
     * @dev Register a future flight for insuring.
     *
     */  
-    function registerFlight
-                                (
-                                )
-                                external
-                                pure
+    function registerFlight(
+        address _addressAirline,
+        string _flight,
+        uint _timestamp
+    )
+        requireIsOperational 
+        external                        
     {
+        flightSuretyData.registerFlight(_addressAirline, _flight, _timestamp);
+        emit RegisterFligthEvent(_addressAirline);
+    }
 
+    function registerPassenger(
+        address _addressAirline,
+        string _flight,
+        address _addressPassenger,
+        string _name,
+        string _surname,
+        uint _age,
+        uint _timestamp
+    )
+        requireIsOperational 
+        external                        
+    {
+        flightSuretyData.registerPassenger(
+            _addressAirline, _flight, _addressPassenger, 
+            _name, _surname, _age, _timestamp);
+        emit RegisterPassengerEvent(_addressAirline);
     }
     
    /**
@@ -130,14 +169,15 @@ contract FlightSuretyApp {
     */  
     function processFlightStatus
                                 (
-                                    address airline,
-                                    string memory flight,
-                                    uint256 timestamp,
-                                    uint8 statusCode
+                                    address _airline,
+                                    string memory _flight,
+                                    uint256 _timestamp,
+                                    uint8 _statusCode
                                 )
                                 internal
-                                pure
     {
+        flightSuretyData.processFlightStatus(_airline, _flight, _timestamp, _statusCode);
+        emit ProcessedFlightEvent(_flight);
     }
 
 
@@ -161,6 +201,29 @@ contract FlightSuretyApp {
 
         emit OracleRequest(index, airline, flight, timestamp);
     } 
+
+    function buy(
+        address _addressAirline,
+        string _flight,
+        address _passengerAddress,
+        uint _amount,
+        uint _multiplier,
+        uint _timestamp) 
+    external 
+    payable 
+    requireIsOperational {
+        require(msg.value <= AIRLINE_SUBMIT_VALUE, "Insurance value is over limit");       
+        flightSuretyData.buy(
+            _addressAirline, _flight, _passengerAddress,
+             _amount, _multiplier, _timestamp);
+        emit BoughtInsuranceEvent(_passengerAddress);
+    }
+    
+    function pay() 
+    public 
+    requireIsOperational {
+        flightSuretyData.pay(msg.sender);
+    }
 
 
 // region ORACLE MANAGEMENT
@@ -334,4 +397,72 @@ contract FlightSuretyApp {
 
 // endregion
 
-}   
+} 
+
+/*contract ExerciseC6C {
+    function updateEmployee(string id, uint256 sales, uint256 bonus) external;
+}*/
+
+contract FlightSuretyData {
+    address private contractOwner;                                      // Account used to deploy contract
+    bool private operational;
+
+    function isOperational() 
+                            public 
+                            returns(bool) ;
+    function setOperatingStatus( bool mode ) 
+        external;
+
+    function registerPassenger (
+        address airlineAddress,
+        string _flight,
+        address _passengerAddress,
+        string _name,
+        string _surname,
+        uint _age,
+        uint _timestamp
+    )
+    external;
+
+    function registerFlight(
+        address _addressAirline,
+        string _flight,
+        uint _timestamp
+    ) external;
+
+    function registerAirline ( 
+        address _addressAirline
+        // optional , bool isAdmin 
+    )
+    external;
+    
+     function buy (  
+        address _addressAirline,
+        string _flight,
+        address _passengerAddress,
+        uint _amount,
+        uint _multiplier,
+        uint _timestamp
+    )
+        external
+        payable;
+
+    function creditInsurees (
+        address _addressAirline,
+        string _flight,
+        address _passengerAddress,
+        uint _timestamp
+    ) public;
+
+    function pay (
+        address _passengerAddress
+    )
+    external;
+
+    function processFlightStatus(
+        address _addressAirline, 
+        string _flight, 
+        uint _timestamp, 
+        uint _status)
+    external;
+}
