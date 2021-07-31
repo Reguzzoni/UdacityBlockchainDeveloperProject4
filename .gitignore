@@ -64,3 +64,9 @@ typings/
 .env
 
 ~$*.pptx
+
+# dont commit ALL dependencies
+/node_modules
+
+#ignore secret key
+secret_properties.yml
