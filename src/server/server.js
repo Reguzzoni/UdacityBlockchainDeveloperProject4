@@ -4,8 +4,6 @@ import Config from './config.json';
 import Web3 from 'web3';
 import express from 'express';
 
-const ORACLES_COUNT = 5;
-
 let oracles = [];
 
 
@@ -27,10 +25,14 @@ let flightSuretyApp = new web3.eth.Contract(FlightSuretyApp.abi, config.appAddre
 
 
 web3.eth.getAccounts((error, accounts) => {
-
-  console.log(`start create oracle`);
-  createOracles(accounts.slice(5, 10));
-  console.log(`end create oracle`);
+  try {
+    console.log(`start create oracle with accounts : ${JSON.stringify(accounts)}`);
+    console.log(`start create oracle with accounts : ${accounts.slice(10,20)}`);
+    createOracles(accounts.slice(10,20));
+    console.log(`end create oracle`);
+  } catch (error) {
+    console.log(`Error into createOracles : ${error}`)
+  }
 
   /*console.log(`Check is authorized address `);
   try {
@@ -53,14 +55,15 @@ web3.eth.getAccounts((error, accounts) => {
 
 flightSuretyApp.events.OracleRequest(
   {
-    fromBlock: "latest"
+    fromBlock: "0"
   },
   function (error, event) {
+    console.log("Oracle Request start")
     if (error) {
       console.log(error);
     }
     else {
-      console.log("OracleRequest");
+      console.log("Success, start!");
       let _index = event.returnValues.index;
       let _airline = event.returnValues.airline;
       let _flight = event.returnValues.flight;
@@ -75,13 +78,22 @@ flightSuretyApp.events.OracleRequest(
         _status ${_status}
          `)
 
-      for (let idxOracle = 0; a < oracles.length; idxOracle++) {
+      for (
+        let idxOracle = 0;
+        idxOracle < oracles.length;
+        idxOracle++) {
 
         if (oracles[idxOracle].index.includes(index)) {
           flightSuretyApp.methods.submitOracleResponse(
-            _index, _airline, _flight,
-            _timestamp, _status)
-            .send({ from: oracles[idxOracle].address },
+            _index,
+            _airline,
+            _flight,
+            _timestamp,
+            _status)
+            .send(
+              {
+                from: oracles[idxOracle].address
+              },
               (error, result) => {
                 console.log("submitOracleResponse");
                 if (error) {
@@ -100,23 +112,30 @@ function createOracles(accounts) {
   console.log("createOracles");
   // create promise to return acc
   return new Promise((resolve, reject) => {
-    // register oracle with test_oracle variable count
-    for (var idxCountOracle = 0;
-      idxCountOracle < ORACLES_COUNT;
-      idxCountOracle++) {
-      flightSuretyApp.methods.registerOracle().send(
-        {
-          from: accounts[idxCountOracle],
-          value: web3.utils.toWei("1", 'ether')
-        }, (error, result) => {
-          // get indexes and save in a list
-          flightSuretyApp.methods.getMyIndexes().call({
-            "from": accounts[idxCountOracle]
-          }).then(result => {
-            oracles.push(result);
-            console.log(`Registered Oracle with success.`);
-          })
-        });
+    try {
+      // register oracle with test_oracle variable count
+      for (var idxCountOracle = 0;
+        idxCountOracle < 10;
+        idxCountOracle++) {
+        console.log(`accounts[idxCountOracle] : ${accounts[idxCountOracle]}`)
+        flightSuretyApp.methods.registerOracle().send(
+          {
+            from: accounts[idxCountOracle],
+            value: web3.utils.toWei("1", 'ether')
+          }, (error, result) => {
+            // get indexes and save in a list
+            flightSuretyApp.methods.getMyIndexes().call({
+              from: accounts[idxCountOracle]
+            }).then(result => {
+              oracles.push(result);
+              console.log(`Registered Oracle with success.`);
+            }).catch ((error) => {
+              console.log(`Error into createOracles - getMyIndexes : ${error}`);
+            });
+          } 
+        )}
+    } catch (error) {
+      console.log(`Error into createOracles - promise : ${error}`)
     }
   })
 }

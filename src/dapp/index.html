@@ -21,16 +21,79 @@
 
     <main class="container">
 
-        <div id="display-wrapper" class="top-20">
+        <div id="display-wrapper" class="margin-20">
         </div>
-        <div class="row top-20">
-            <label class="form">Flight</label> <input type="text" id="flight-number"> <btn class="btn btn-primary" id="submit-oracle">Submit to Oracles</btn>
+        
+        <div class="row margin-20">
+            <label class="form">Airline</label> 
+            <input type="text" id="Airline_airlineAddress"> 
+            <btn class="btn btn-primary" id="Airline_registerAirline">
+                Register Airline
+            </btn>
         </div>
-        <div class="row top-20">
-            <label class="form">Flight</label> <input type="text" id="flight-number"> <btn class="btn btn-primary" id="registerFlight">registerFlight</btn>
+        <div class="row margin-20">
+            <label class="form">Airline Address</label> 
+            <input type="text" id="Fund_airlineAddress">
+            <label class="form">Airline Fund</label> 
+            <input type="text" id="Fund_fund"> 
+            <btn class="btn btn-primary" id="Airline_fund">Fund</btn>
         </div>
-        <div class="row top-20">
-            <label class="form">Flight</label> <input type="text" id="fund"> <btn class="btn btn-primary" id="Fund">Fund</btn>
+        <div class="row margin-20">
+            <label class="form">Airline</label> 
+            <input type="text" id="Flight_airlineAddress">
+            <label class="form">Flight</label> 
+            <input type="text" id="Flight_flightNumber"> 
+            <btn class="btn btn-primary" id="Flight_registerFlight">
+                registerFlight
+            </btn>
+        </div>
+        <div class="row margin-20">
+            <label class="form">Airline</label> 
+            <input type="text" id="Oracle_airlineAddress">
+            <label class="form">Flight</label> 
+            <input type="text" id="Oracle_flightNumber"> 
+            <btn class="btn btn-primary" id="Oracle_submitOracle">
+                Submit to Oracles</btn>
+        </div>
+        <div class="row margin-20">
+            <tr class="spaceUnder">
+                <th><label class="form">insert Airline Address</label> 
+                    <input type="text" id="Passenger_airlineAddress">
+                </th>
+                <th><label class="form">Flight</label> 
+                    <input type="text" id="Passenger_flightNumber">  
+                <th>
+                    <label class="form">passengerAddress</label>
+                    <input type="text" id="Passenger_passengerAddress">
+                </th>
+                <th>
+                    <label class="form">passengerName</label>
+                    <input type="text" id="Passenger_passengerName">
+                </th>
+                <th><label class="form">
+                    passengerSurname</label>
+                    <input type="text" id="Passenger_passengerSurname">
+                </th>
+                <th><label class="form">
+                    passengerAge</label> 
+                    <input type="text" id="Passenger_passengerAge">
+                </th>
+            </tr>
+             <btn class="btn btn-primary" id="Passenger_registerPassenger">
+                 RegisterPassenger</btn>
+        </div>
+        
+        <div class="row margin-20">
+            <label class="form">Airline</label> 
+            <input type="text" id="Buy_airlineAddress">
+            <label class="form">Flight</label> 
+            <input type="text" id="Buy_flightNumber">
+            <label class="form">Passenger</label> 
+            <input type="text" id="Buy_passengerNumber"> 
+            <label class="form">Value</label> 
+            <input type="text" id="Buy_value">
+            <btn class="btn btn-primary" id="Buy_insurance">
+                Buy Insurance</btn>
         </div>
     </main>
 

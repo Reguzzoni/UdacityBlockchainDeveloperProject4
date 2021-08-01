@@ -18,42 +18,67 @@ import './flightsurety.css';
     
 
         // User-submitted transaction
-        DOM.elid('submit-oracle').addEventListener('click', () => {
-            let flight = DOM.elid('flight-number').value;
+        DOM.elid('Airline_registerAirline').addEventListener('click', () => {
+            let airlineAddress = DOM.elid('Airline_airlineAddress').value;
             // Write transaction
-            contract.fetchFlightStatus(flight, (error, result) => {
+            console.log(`Started register airline with address ${airlineAddress}`);
+            contract.registerAirline(airlineAddress, (error, result) => {
+                display('Airline', 'Register airline', [ { label: 'Register airline', error: error, value: result.airline} ]);
+            });
+        })
+
+        DOM.elid('Airline_fund').addEventListener('click', () => {
+            let airlineAddress = DOM.elid('Fund_airlineAddress').value;
+            let fund = DOM.elid('Fund_fund').value;
+            // Write transaction
+            contract.Fund(airlineAddress,fund, (error, result) => {
+                display('Airline', 'Fund', [ { label: 'Fund airline', error: error, value: result.airline + ' ' + result.value} ]);
+            });
+        })
+
+        DOM.elid('Oracle_submitOracle').addEventListener('click', () => {
+            let airline = DOM.elid('Oracle_airlineAddress').value;
+            let flight = DOM.elid('Oracle_flightNumber').value;
+            // Write transaction
+            contract.fetchFlightStatus(airline, flight, (error, result) => {
                 display('Oracles', 'Trigger oracles', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
             });
         })
 
-        DOM.elid('registerFlight').addEventListener('click', () => {
-            let flight = DOM.elid('flight-number').value;
+        DOM.elid('Flight_registerFlight').addEventListener('click', () => {
+            let airline = DOM.elid('Flight_airlineAddress').value;
+            let flight = DOM.elid('Flight_flightNumber').value;
             
             // Write transaction
             contract.registerFlight(flight, (error, result) => {
-                display('Fligth Registered', 'Success', [ { label: 'Success', error: error, value: result.flight + ' ' + result.timestamp} ]);
+                display('Fligth Registered', 'Success', [ { label: 'Success', error: error, value: result.flight } ]);
             });
         })
-        
-        DOM.elid('Fund').addEventListener('click', () => {
-            let fund = DOM.elid('funds').value;
+
+        DOM.elid('Passenger_registerPassenger').addEventListener('click', () => {
+            let airline = DOM.elid('Passenger_airlineAddress-number').value;
+            let flight = DOM.elid('flight-Passenger_flightNumber').value;
+            let passenger = DOM.elid('flight-Passenger_passengerAddress').value;
+            let name = DOM.elid('Passenger_passengerName').value;
+            let surname = DOM.elid('Passenger_passengerSurname').value;
+            let age = DOM.elid('Passenger_passengerAge').value;
+            
             // Write transaction
             contract.registerPassenger(
-                fund, (error, result) => {
+                airline, flight, passenger, name, surname, age, (error, result) => {
                 display(' registerPassenger ', 'Passenger Registered', [ { label: 'Success', error: error, value: result.flight + ' ' + result.passengerName} ]);
             });
         })
 
-        DOM.elid('registerPassenger').addEventListener('click', () => {
-            let flight = DOM.elid('flight-number').value;
-            let name = DOM.elid('name').value;
-            let surname = DOM.elid('surname').value;
-            let age = DOM.elid('age').value;
-            
+        DOM.elid('Buy_insurance').addEventListener('click', () => {
+            let airline = DOM.elid('Buy_airlineAddress').value;
+            let flight = DOM.elid('Buy_flightNumber').value;
+            let passenger = DOM.elid('Buy_passengerAddress').value;
+            let values = DOM.elid('Buy_value').value;
             // Write transaction
-            contract.registerPassenger(
-                flight, name, surname, age, (error, result) => {
-                display(' registerPassenger ', 'Passenger Registered', [ { label: 'Success', error: error, value: result.flight + ' ' + result.passengerName} ]);
+            contract.buy(
+                airline, flight, passenger, values, (error, result) => {
+                display(' buy ', 'buy insurance', [ { label: 'Success', error: error, value: result.flight + ' ' + result.passengerName} ]);
             });
         })
         

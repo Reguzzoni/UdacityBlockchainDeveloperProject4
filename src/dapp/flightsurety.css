@@ -12,8 +12,17 @@ body {
     padding: 40px;
 }
 
-.top-20 {
-    margin-top: 20px;
+.margin-20 {
+    
+    margin-top: 40px;
+    margin-bottom: 40px;
+    margin-left: 50px;
+    margin-right: 50px;
+    border-spacing: 20px;
+    border-collapse: separate;
+    border-left: 1em solid transparent;
+    border-top: 1em solid transparent;
+    border-style: dashed ;
 }
 
 h5 {
@@ -40,3 +49,22 @@ label.form {
 input {
     margin-right: 30px;
 }
+
+.buttons {
+    position:absolute; 
+    right:5px; 
+    bottom:5px;
+    width: 100px;
+}
+
+.button-left {
+    float:left;
+    width:45px;
+    margin: 0 2px
+}
+
+/* Apply padding to td elements that are direct children of the tr elements with class spaceUnder. */
+
+tr.spaceUnder>td {
+    padding-bottom: 10px;
+  }
