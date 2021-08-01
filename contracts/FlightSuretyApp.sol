@@ -19,7 +19,8 @@ contract FlightSuretyApp {
 
     // Flight status codees
     // created status STATUS_ACCEPT_PASSENGERS when passenger can be registered to flight
-    uint8 private constant STATUS_ACCEPT_PASSENGERS = 5;
+    // removed cause much complex to manage with oracles
+    // uint8 private constant STATUS_ACCEPT_PASSENGERS = 5;
 
     uint8 private constant STATUS_CODE_UNKNOWN = 0;
     uint8 private constant STATUS_CODE_ON_TIME = 10;
@@ -309,7 +310,7 @@ contract FlightSuretyApp {
         
         uint _numberInsurance = flightSuretyData.buy(
             _addressAirline, _flight, _passengerAddress,
-             msg.value, INSURANCE_MULT, _timestamp);
+             msg.value, INSURANCE_MULT, _timestamp, msg.sender);
         emit BoughtInsuranceEvent(_numberInsurance);
     }
     
@@ -541,7 +542,8 @@ contract FlightSuretyData {
         address _passengerAddress,
         uint _amount,
         uint _multiplier,
-        uint _timestamp
+        uint _timestamp,
+        address _msgSender
     )
         external
         payable
@@ -659,8 +661,23 @@ contract FlightSuretyData {
         view
     returns (uint);
 
+    function isPayed(
+        address _addressAirline,
+        string  _flight,
+        address _addressPassenger,
+        uint    _timestamp
+    )
+        external
+        view
+    returns (bool);
+
     function getCountInsurance()
         external
         view
     returns (uint);
+
+    function isFund(address _addressAirline)
+    public
+    view 
+    returns (bool);
 }
