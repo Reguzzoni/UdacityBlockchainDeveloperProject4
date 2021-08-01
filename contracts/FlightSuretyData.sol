@@ -37,7 +37,7 @@ contract FlightSuretyData {
         }
         mapping(address => UserProfile) userProfiles                        // Mapping for storing user profiles
      */
-     // removed cause much complex to manage with oracles
+     // removed new status cause complex to manage with oracles
     //uint8 private constant STATUS_ACCEPT_PASSENGERS = 5;
     uint8 private constant STATUS_CODE_UNKNOWN = 0;
     uint8 private constant STATUS_CODE_ON_TIME = 10;
@@ -62,23 +62,25 @@ contract FlightSuretyData {
     mapping(address => Airline) mapAirline;
     mapping(uint => address) mapCountToAddressAirline;
 
-    uint countFlight = 0;
+    
 
     /* as showed with default method getFlightKey,
     *   It return a key identifier of bytes32 and flight got string name flight
     */
+    uint countFlight = 0;
     struct Flight {
-        string flight;
         address addressAirline;
+        string flight;
         uint status;
-        // flight numbers and timestamps, for purchasing insurance
         uint timestamp;
         mapping(address => Passenger) mapPassenger;
         mapping(uint => address) mapNumberPassengerToAddress;
         uint countPassengers;
         uint numberFlight;
     }
-    // registration : when they get registered and approved
+    
+    // registration : when flights get registered and approved
+    // bytes is abi.encode of airline + flight
     mapping(bytes32 => Flight) mapFlight;
 
     // insurance : each arline has to submit 10 ether
@@ -128,12 +130,6 @@ contract FlightSuretyData {
         uint numberPassenger;
     }
 
-    // RATE LIMITING
-    uint256 private enabled = block.timestamp;
-
-    // RE-ENTRANCY GUARD
-    uint256 private counter = 1;
-
     // AUTHORIZED CONTRACTS - who can register airline, flight or passenger
     mapping(address => uint256) private mapAuthorized;
 
@@ -142,25 +138,27 @@ contract FlightSuretyData {
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
 
+    // airlines
     event RegisterAirlineEvent(address _airlineAddress);
 
-    event FundAirlineEvent(address _airlineAddress);
+    event FundedEvent(address _addressAirline);
 
-    event RegisterFlightEvent(string _flight);
+    // flight
+    event RegisterFlightEvent(address _airlineAddress, string _flight);
 
-    event UpdateFlightEvent(string _flight, uint _status);
-
-    event RegisterPassengerEvent(string _flight, address _passenger);
-
-    event BoughtInsuranceEvent(string _flight,address _passenger);
-
-    event PayedInsuranceEvent(address _passenger);
-
-    event AccountWithdrawnEvent(address _passenger);
+    event UpdateFlightEvent(address _airlineAddress, string _flight, uint _status, uint _timestamp);
 
     event StatusChangedEvent(address _addressAirline, string _flightKey);
 
-    event FundedEvent(address _addressAirline);
+    // passengers
+    event RegisterPassengerEvent(address _airlineAddress,string _flight, address _passenger);
+
+    event BoughtInsuranceEvent(address _airlineAddress, string _flight, address _passenger);
+
+    event PayedInsuranceEvent(address _airlineAddress, string _flight, address _passenger);
+
+    event AccountWithdrawnEvent(address _passenger);
+
 
     /**
     * @dev Constructor
@@ -207,6 +205,15 @@ contract FlightSuretyData {
         _;
     }
 
+    // removed but could be a good idea to have timer on registering and dont allow double entry
+    /*
+
+    // RATE LIMITING
+    uint256 private enabled = block.timestamp;
+
+    // RE-ENTRANCY GUARD
+    uint256 private counter = 1;
+
     modifier rateLimit(uint256 time) {
         require(block.timestamp >= enabled, "Rate limiting in effect");
         enabled = enabled.add(time);
@@ -219,12 +226,11 @@ contract FlightSuretyData {
         _;
         require(guard == counter, "That is not allowed");
     }
+    */
 
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
-
-    
 
     /**
     * @dev Get operating status of contract
@@ -270,6 +276,7 @@ contract FlightSuretyData {
         }
     }
 
+    // manage authorization
     function authorizeCaller(address _addressToAuth) 
         external 
     requireContractOwner 
@@ -300,16 +307,15 @@ contract FlightSuretyData {
         address _passengerAddress,
         string _name,
         string _surname,
-        uint _age,
-        uint _timestamp
+        uint _age
     )
         requireIsOperational 
         requireAuthorized 
     external {
         
         require( mapAirline[_addressAirline].isFunded, "Airline is not already funded");
-
-        bytes32 _flightKey = getFlightKey(_addressAirline, _flight, _timestamp);
+        require( mapAirline[_addressAirline].numberAirline > 0, "Airline is not already registered");    
+        bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         require(mapFlight[_flightKey].numberFlight > 0, 
             "Flight doesn't exists");
 
@@ -339,32 +345,30 @@ contract FlightSuretyData {
         mapFlight[_flightKey].mapPassenger[_passengerAddress] = _passenger;
         mapFlight[_flightKey].countPassengers = countPassengers;
 
-        emit RegisterPassengerEvent(_flight, _passengerAddress);
+        emit RegisterPassengerEvent(_addressAirline, _flight, _passengerAddress);
     }
 
     function isPassenger(
         address _addressAirline,
         string _flight,
-        uint _timestamp,
         address _addressPassenger
     ) 
     external 
     view 
     returns(bool) {
-        bytes32 _flightKey = getFlightKey(_addressAirline, _flight, _timestamp);
+        bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         return mapFlight[_flightKey].mapPassenger[_addressPassenger].numberPassenger > 0;
     }
 
     
     function getPassengerCountByFlight(
         address _addressAirline,
-        string _flight,
-        uint _timestamp
+        string _flight
     )
     external 
     view 
     returns(uint) {
-        bytes32 _flightKey = getFlightKey(_addressAirline, _flight, _timestamp);
+        bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         return mapFlight[_flightKey].countPassengers;
     }
 
@@ -374,36 +378,33 @@ contract FlightSuretyData {
     
     function registerFlight(
         address _addressAirline,
-        string _flight,
-        uint _timestamp
+        string _flight
     ) external
         requireIsOperational 
         requireAuthorized
     {
-        bytes32 _flightKey = getFlightKey(_addressAirline, _flight, _timestamp);
+        bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         require(! (mapFlight[_flightKey].numberFlight > 0), "Flight has already been registered");
         require( mapAirline[_addressAirline].isFunded, "Airline is not already funded");
 
         countFlight = countFlight.add(1);
         mapFlight[_flightKey].addressAirline = _addressAirline;
-        mapFlight[_flightKey].timestamp = _timestamp;
         mapFlight[_flightKey].numberFlight = countFlight;
         mapFlight[_flightKey].countPassengers = 0;
 
-        emit RegisterFlightEvent(_flight);
+        emit RegisterFlightEvent(_addressAirline, _flight);
     }
 
 
     // check if is flight registered
     function isFlight(
         address _addressAirline,
-        string _flight,
-        uint _timestamp
+        string _flight
     ) 
     external 
     view 
     returns(bool) {
-        bytes32 _flightKey = getFlightKey(_addressAirline, _flight, _timestamp);
+        bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         return mapFlight[_flightKey].numberFlight > 0;
     }
 
@@ -533,17 +534,19 @@ contract FlightSuretyData {
     // has required form suretyApp, need a method to processFlightStatus
     function processFlightStatus(
         address _addressAirline, 
-        string _flight, 
-        uint _timestamp, 
-        uint _status) 
+        string _flight,
+        uint _status,
+        uint _timestamp) 
     requireIsOperational 
     requireAuthorized 
     external 
     {
-        bytes32 _flightKey = getFlightKey(_addressAirline, _flight, _timestamp);
+        bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         require(mapFlight[_flightKey].numberFlight > 0, "Flight is not registered");
 
         mapFlight[_flightKey].status = _status;
+        mapFlight[_flightKey].timestamp = _timestamp;
+
         if(_status == STATUS_CODE_LATE_AIRLINE) {
             for (uint idxPassenger = 1 ;
                 idxPassenger <= mapFlight[_flightKey].countPassengers; 
@@ -553,8 +556,7 @@ contract FlightSuretyData {
                 creditInsurees(
                     _addressAirline,
                     _flight,
-                    _addressPassenger,
-                    _timestamp);
+                    _addressPassenger);
             }
         }
         emit StatusChangedEvent(_addressAirline, _flight);
@@ -579,7 +581,6 @@ contract FlightSuretyData {
         address _passengerAddress,
         uint _amount,
         uint _multiplier,
-        uint _timestamp,
         address msgSender
     )
         external
@@ -588,7 +589,7 @@ contract FlightSuretyData {
         requireAuthorized 
         returns (uint)
     {       
-        bytes32 _flightKey = getFlightKey(_addressAirline, _flight, _timestamp);
+        bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         require(msgSender == tx.origin, "Contracts not allowed");
         require(mapFlight[_flightKey].numberFlight > 0, "Flight is not registered");
         require(mapFlight[_flightKey].mapPassenger[_passengerAddress].numberPassenger > 0,
@@ -605,7 +606,7 @@ contract FlightSuretyData {
 
         mapFlight[_flightKey].mapPassenger[_passengerAddress].insurance.payment = _payment;
 
-        emit BoughtInsuranceEvent(_flight, _passengerAddress);
+        emit BoughtInsuranceEvent(_addressAirline, _flight, _passengerAddress);
 
         return countInsurance;
     }
@@ -616,13 +617,12 @@ contract FlightSuretyData {
     function creditInsurees (
         address _addressAirline,
         string _flight,
-        address _passengerAddress,
-        uint _timestamp
+        address _passengerAddress
     ) public
         requireIsOperational
     {
         
-        bytes32 _flightKey = getFlightKey(_addressAirline, _flight, _timestamp);
+        bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         require(mapFlight[_flightKey].numberFlight > 0, "Flight is not registered");
         require(mapFlight[_flightKey].mapPassenger[_passengerAddress].numberPassenger > 0, 
             "Passenger is not registered");
@@ -638,7 +638,7 @@ contract FlightSuretyData {
         
         mapPaymentsToDo[_passengerAddress] = _amountToPay;
 
-        emit PayedInsuranceEvent(_passengerAddress);
+        emit PayedInsuranceEvent(_addressAirline, _flight, _passengerAddress);
     }
     
 
@@ -664,45 +664,42 @@ contract FlightSuretyData {
     function hasInsurance(
         address _addressAirline,
         string  _flight,
-        address _addressPassenger,
-        uint    _timestamp
+        address _addressPassenger
     )
         external
         view
         requireIsOperational
     returns (bool)
     {
-        bytes32 _flightKey = getFlightKey(_addressAirline, _flight, _timestamp);
+        bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         return mapFlight[_flightKey].mapPassenger[_addressPassenger].insurance.numberInsurance != 0;
     }
 
     function getInsurance(
         address _addressAirline,
         string  _flight,
-        address _addressPassenger,
-        uint    _timestamp
+        address _addressPassenger
     )
         external
         view
         requireIsOperational
     returns (uint)
     {
-        bytes32 _flightKey = getFlightKey(_addressAirline, _flight, _timestamp);
+        bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         return mapFlight[_flightKey].mapPassenger[_addressPassenger].insurance.numberInsurance;
     }
 
     function isPayed(
         address _addressAirline,
         string  _flight,
-        address _addressPassenger,
-        uint    _timestamp
+        address _addressPassenger
     )
         external
         view
         requireIsOperational
     returns (bool)
     {
-        bytes32 _flightKey = getFlightKey(_addressAirline, _flight, _timestamp);
+        bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         return mapFlight[_flightKey].mapPassenger[_addressPassenger].insurance.isPayed;
     }
 
@@ -741,17 +738,28 @@ contract FlightSuretyData {
         return keccak256(abi.encodePacked(airline, flight, timestamp));
     }
 
+    function getFlightKeyOfMap
+                        (
+                            address airline,
+                            string memory flight
+                        )
+                        internal
+                        pure
+                        returns(bytes32) 
+    {
+        return keccak256(abi.encodePacked(airline, flight));
+    }
+
     function getFlightStatus
                         (
                             address _addressAirline,
-                            string _flight,
-                            uint256 _timestamp
+                            string _flight
                         )
                         external
                         view
                         returns(uint) 
     {
-        bytes32 _flightKey = getFlightKey(_addressAirline, _flight, _timestamp);
+        bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         return mapFlight[_flightKey].status;
     }
     

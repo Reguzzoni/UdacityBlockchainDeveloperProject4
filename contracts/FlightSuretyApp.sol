@@ -191,13 +191,12 @@ contract FlightSuretyApp {
     */  
     function registerFlight(
         address _addressAirline,
-        string _flight,
-        uint _timestamp
+        string _flight
     )
         requireIsOperational 
         external                        
     {
-        flightSuretyData.registerFlight(_addressAirline, _flight, _timestamp);
+        flightSuretyData.registerFlight(_addressAirline, _flight);
         emit RegisterFligthEvent(_addressAirline);
     }
 
@@ -207,15 +206,14 @@ contract FlightSuretyApp {
         address _addressPassenger,
         string _name,
         string _surname,
-        uint _age,
-        uint _timestamp
+        uint _age
     )
         requireIsOperational 
         external                        
     {
         flightSuretyData.registerPassenger(
             _addressAirline, _flight, _addressPassenger, 
-            _name, _surname, _age, _timestamp);
+            _name, _surname, _age);
         emit RegisterPassengerEvent(_addressAirline);
     }
     
@@ -298,8 +296,7 @@ contract FlightSuretyApp {
     function buy(
         address _addressAirline,
         string _flight,
-        address _passengerAddress,
-        uint _timestamp) 
+        address _passengerAddress) 
     external 
     payable 
     requireIsOperational {
@@ -310,7 +307,7 @@ contract FlightSuretyApp {
         
         uint _numberInsurance = flightSuretyData.buy(
             _addressAirline, _flight, _passengerAddress,
-             msg.value, INSURANCE_MULT, _timestamp, msg.sender);
+             msg.value, INSURANCE_MULT, msg.sender);
         emit BoughtInsuranceEvent(_numberInsurance);
     }
     
@@ -519,15 +516,13 @@ contract FlightSuretyData {
         address _passengerAddress,
         string _name,
         string _surname,
-        uint _age,
-        uint _timestamp
+        uint _age
     )
     external;
 
     function registerFlight(
         address _addressAirline,
-        string _flight,
-        uint _timestamp
+        string _flight
     ) external;
 
     function registerAirline ( 
@@ -542,7 +537,6 @@ contract FlightSuretyData {
         address _passengerAddress,
         uint _amount,
         uint _multiplier,
-        uint _timestamp,
         address _msgSender
     )
         external
@@ -552,8 +546,7 @@ contract FlightSuretyData {
     function creditInsurees (
         address _addressAirline,
         string _flight,
-        address _passengerAddress,
-        uint _timestamp
+        address _passengerAddress
     ) public;
 
     function pay (
@@ -602,8 +595,7 @@ contract FlightSuretyData {
     // check if is flight 
     function isFlight(
         address _addressAirline,
-        string _flight,
-        uint _timestamp
+        string _flight
     ) 
     external 
     view 
@@ -618,8 +610,7 @@ contract FlightSuretyData {
     // get passenger count by flight
     function getPassengerCountByFlight(
         address _addressAirline,
-        string _flight,
-        uint _timestamp
+        string _flight
     )
     external 
     view ;
@@ -628,7 +619,6 @@ contract FlightSuretyData {
     function isPassenger(
         address _addressAirline,
         string _flight,
-        uint _timestamp,
         address _addressPassenger
     ) 
     external 
@@ -639,8 +629,7 @@ contract FlightSuretyData {
     function hasInsurance(
         address _addressAirline,
         string  _flight,
-        address _addressPassenger,
-        uint    _timestamp
+        address _addressPassenger
     )
         external
         view
@@ -654,8 +643,7 @@ contract FlightSuretyData {
     function getInsurance(
         address _addressAirline,
         string  _flight,
-        address _addressPassenger,
-        uint    _timestamp
+        address _addressPassenger
     )
         external
         view
@@ -664,8 +652,7 @@ contract FlightSuretyData {
     function isPayed(
         address _addressAirline,
         string  _flight,
-        address _addressPassenger,
-        uint    _timestamp
+        address _addressPassenger
     )
         external
         view
