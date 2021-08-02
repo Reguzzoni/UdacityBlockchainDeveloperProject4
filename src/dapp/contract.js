@@ -76,7 +76,27 @@ export default class Contract {
             });
     }
 
-    registerAirline(airlineAddress, callback) {
+    authorizeAddress(addressToAuthorize, callback) {
+        let self = this;
+        console.log(`
+            authorize with input 
+            address: ${addressToAuthorize}`);
+
+        let payload = {
+            addressToAuthorize : addressToAuthorize
+        }
+
+        this.flightSuretyData.methods
+        .authorizeCaller(payload.addressToAuthorize)
+        .send(
+            {
+                from:self.owner
+            }, (error, result) => {
+                callback(error, payload);
+        });
+    }
+
+    registerAirline(addressToAuthorize, callback) {
         console.log(`
             register airline with input 
             airline: ${airlineAddress}`);

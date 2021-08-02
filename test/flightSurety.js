@@ -676,15 +676,23 @@ contract('Flight Surety Tests', async (accounts) => {
                 id ${idxAccountOracle}
                 and account ${accounts[idxAccountOracle]}`);
 
-                await config.flightSuretyApp.registerOracle({ from: accounts[idxAccountOracle], value: valueNeeded });
+                await config.flightSuretyApp.registerOracle(
+                    { 
+                        from: accounts[idxAccountOracle],
+                        value: valueNeeded ,
+                        gas : 300000
+                    });
                 console.log(`get oracle indexed with id ${idxAccountOracle}`);
                 
-                let oracleIndexes = await config.flightSuretyApp.getMyIndexes().call({ from: accounts[idxAccountOracle] });
+                let oracleIndexes = await config.flightSuretyApp.getMyIndexes.call(
+                    { 
+                        from: accounts[idxAccountOracle] 
+                    });
                 assert.equal(oracleIndexes.length, 3, 'Oracle should be registered with three indexes');
             }
         });
 
-    it("(oracle) Simulating server",
+    /*it("(oracle) Simulating server",
         //Server will loop through all registered oracles, identify those oracles for which the OracleRequest event applies,
         // and respond by calling into FlightSuretyApp contract with random status code"
         async () => {
@@ -763,5 +771,5 @@ contract('Flight Surety Tests', async (accounts) => {
             console.log(`flightStatus : ${flightStatus}`);
             assert.equal(STATUS_CODE_LATE_AIRLINE, flightStatus, 'Oracle didnt change status');
         });
-
+*/
 });

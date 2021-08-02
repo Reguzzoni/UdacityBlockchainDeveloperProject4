@@ -16,6 +16,15 @@ import './flightsurety.css';
             display('Operational Status', 'Check if contract is operational', [ { label: 'Operational Status', error: error, value: result} ]);
         });
     
+        // User-submitted transaction
+        DOM.elid('Authorize_authorizeAddress').addEventListener('click', () => {
+            let addressToAuthorize = DOM.elid('Authorize_address').value;
+            // Write transaction
+            console.log(`Started authorize with address ${addressToAuthorize}`);
+            contract.authorizeAddress(addressToAuthorize, (error, result) => {
+                display('authorizeCaller', 'Authorize_address', [ { label: 'Authorize_address', error: error, value: result.addressToAuthorize} ]);
+            });
+        })
 
         // User-submitted transaction
         DOM.elid('Airline_registerAirline').addEventListener('click', () => {
