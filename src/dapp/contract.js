@@ -6,7 +6,7 @@ import Web3 from 'web3';
 export default class Contract {
     constructor(network, callback) {
 
-        let config = Config[network];
+        var config = Config[network];
         this.web3 = new Web3(new Web3.providers.HttpProvider(config.url));
         this.flightSuretyApp = new this.web3.eth.Contract(FlightSuretyApp.abi, config.appAddress);
         this.flightSuretyData = new this.web3.eth.Contract(FlightSuretyData.abi, config.appAddress);
@@ -56,15 +56,15 @@ export default class Contract {
     }
 
     isOperational(callback) {
-       let self = this;
+       var self = this;
        this.flightSuretyApp.methods
             .isOperational()
             .call({ from: self.owner}, callback);
     }
 
     fetchFlightStatus(airline, flight, callback) {
-        let self = this;
-        let payload = {
+        var self = this;
+        var payload = {
             airline: airline,
             flight: flight,
             timestamp: Math.floor(Date.now() / 1000)
@@ -77,12 +77,12 @@ export default class Contract {
     }
 
     authorizeAddress(addressToAuthorize, callback) {
-        let self = this;
+        var self = this;
         console.log(`
             authorize with input 
             address: ${addressToAuthorize}`);
 
-        let payload = {
+            var payload = {
             addressToAuthorize : addressToAuthorize
         }
 
@@ -96,12 +96,12 @@ export default class Contract {
         });
     }
 
-    registerAirline(addressToAuthorize, callback) {
+    registerAirline(airlineAddress, callback) {
         console.log(`
             register airline with input 
             airline: ${airlineAddress}`);
 
-            let payload = {
+            var payload = {
                 airline : airlineAddress
             } 
 
@@ -119,8 +119,8 @@ export default class Contract {
             airline: ${airlineAddress}
             flight: ${flight}`);
 
-        let self = this;
-        let payload = {
+        var self = this;
+        var payload = {
             airline : airlineAddress,
             flight: flight
         } 
@@ -135,22 +135,20 @@ export default class Contract {
     fund( airlineAdress, funds, callback) {
         console.log(`airline fund with input 
             airline: ${airlineAdress} and funds :${funds}`);
-        let self = this;
-        let payload = {
+        var self = this;
+        var payload = {
             airline : airlineAdress,
-            whoFund : 0X00,
+            whoFund : airlineAdress,
             value : this.web3.utils.toWei(funds.toString(), "ether")
         } 
-        
-        this.web3.eth.getAccounts((error, accounts) => {
-            payload.whoFund = accounts[0];
-        });
 
+        console.log("payload.whoFund : ", payload.whoFund)
         this.flightSuretyApp.methods
             .fund(payload.airline)
             .send({ 
                 from: payload.whoFund,
-                value: payload.value
+                value: payload.value,
+                gas: 30000
             },
             (error, result) => {
                 callback(error, payload);
@@ -165,8 +163,8 @@ export default class Contract {
             passengerName: ${passengerName},
             passengerSurname: ${passengerSurname}`);
 
-        let self = this;
-        let payload = {
+        var self = this;
+        var payload = {
             airline : airline,
             flight: flight,
             passengerAddress :passenger,
@@ -187,9 +185,9 @@ export default class Contract {
     }
 
     buy(airline, flight, passenger, amount, callback) {
-        let self = this;
-        let priceInWei = this.web3.utils.toWei(amount.toString(), "ether");
-        let payload = {
+        var self = this;
+        var priceInWei = this.web3.utils.toWei(amount.toString(), "ether");
+        var payload = {
             airline: airline,
             flight: flight,
             price: amount,

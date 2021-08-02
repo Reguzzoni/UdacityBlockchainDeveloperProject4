@@ -598,6 +598,9 @@ contract FlightSuretyData {
     public
     view 
     returns (bool);
+
+    function authorizeCaller(address _addressToAuth) 
+    external;
 }
 
 
