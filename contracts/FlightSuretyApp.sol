@@ -273,6 +273,13 @@ contract FlightSuretyApp {
         emit OracleRequest(index, airline, flight, timestamp);
     } 
 
+    function isOracleAddress(address _addressOracle)
+    external
+    view
+    returns (bool) {
+        return oracles[_addressOracle].isRegistered;
+    }
+
     function convertToPayableAddress(address _addressNotPayable)
     internal
     pure

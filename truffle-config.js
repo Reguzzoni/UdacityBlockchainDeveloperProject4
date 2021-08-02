@@ -1,14 +1,14 @@
-/**var HDWalletProvider = require("truffle-hdwallet-provider");
-var mnemonic = "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat";
+/*var HDWalletProvider = require("truffle-hdwallet-provider");
 
 module.exports = {
   networks: {
     development: {
       provider: function() {
-        return new HDWalletProvider(mnemonic, "http://127.0.0.1:8545/", 0, 50);
+        return new HDWalletProvider(mnemonic, "http://127.0.0.1:7545/");
       },
       network_id: '*',
-      gas: 9999999
+      gas: 4500000,        // rinkeby has a lower block limit than mainnet
+      gasPrice: 10000000000
     }
   },
   compilers: {
@@ -17,6 +17,7 @@ module.exports = {
     }
   }
 };*/
+
 /**
  * Use this file to configure your truffle project. It's seeded with some
  * common settings for different networks and features like migrations,
@@ -40,6 +41,8 @@ module.exports = {
  * phrase from a file you've .gitignored so it doesn't accidentally become public.
  *
  */
+
+
 //read from yaml file
 const fs = require('fs');
 const yaml = require('js-yaml');
@@ -80,15 +83,6 @@ const getInfuraKey = () => {
  mnemonic = getMnemonicKey();
  
 module.exports = {
-  /**
-   * Networks define how you connect to your ethereum client and let you set the
-   * defaults web3 uses to send transactions. If you don't specify one truffle
-   * will spin up a development blockchain for you on port 9545 when you
-   * run `develop` or `test`. You can ask a truffle command to use a specific
-   * network from the command line, e.g
-   *
-   * $ truffle test --network <network-name>
-   */
 
   networks: {
     // Useful for testing. The `development` name is special - truffle uses it by default
@@ -126,7 +120,9 @@ module.exports = {
 
     // manage network rinkeby - copied from lesson
     rinkeby: {
-      provider: () => new HDWallet(getMnemonicKey(), `https://rinkeby.infura.io/v3/${getInfuraKey()}`),
+      provider: () => new HDWallet(getMnemonicKey(), 
+      `https://rinkeby.infura.io/v3/${getInfuraKey()}`,
+       0, 50),
       network_id: 4,       // rinkeby's id
       gas: 4500000,        // rinkeby has a lower block limit than mainnet
       gasPrice: 10000000000

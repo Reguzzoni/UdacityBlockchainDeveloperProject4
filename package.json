@@ -44,6 +44,7 @@
     "webpack-node-externals": "1.7.2"
   },
   "dependencies": {
+    "@truffle/debugger": "^9.1.8",
     "js-yaml": "^4.1.0",
     "replace-in-file": "^6.2.0"
   }

@@ -31,7 +31,7 @@ import './flightsurety.css';
             let airlineAddress = DOM.elid('Fund_airlineAddress').value;
             let fund = DOM.elid('Fund_fund').value;
             // Write transaction
-            contract.Fund(airlineAddress,fund, (error, result) => {
+            contract.fund(airlineAddress,fund, (error, result) => {
                 display('Airline', 'Fund', [ { label: 'Fund airline', error: error, value: result.airline + ' ' + result.value} ]);
             });
         })
@@ -50,15 +50,15 @@ import './flightsurety.css';
             let flight = DOM.elid('Flight_flightNumber').value;
             
             // Write transaction
-            contract.registerFlight(flight, (error, result) => {
+            contract.registerFlight(airline, flight, (error, result) => {
                 display('Fligth Registered', 'Success', [ { label: 'Success', error: error, value: result.flight } ]);
             });
         })
 
         DOM.elid('Passenger_registerPassenger').addEventListener('click', () => {
-            let airline = DOM.elid('Passenger_airlineAddress-number').value;
-            let flight = DOM.elid('flight-Passenger_flightNumber').value;
-            let passenger = DOM.elid('flight-Passenger_passengerAddress').value;
+            let airline = DOM.elid('Passenger_airlineAddress').value;
+            let flight = DOM.elid('Passenger_flightNumber').value;
+            let passenger = DOM.elid('Passenger_passengerAddress').value;
             let name = DOM.elid('Passenger_passengerName').value;
             let surname = DOM.elid('Passenger_passengerSurname').value;
             

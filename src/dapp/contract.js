@@ -15,57 +15,49 @@ export default class Contract {
         this.owner = null;
         this.airlines = [];
         this.passengers = [];
-        this.timestampTest;
+        this.appAddress = config.appAddress;
     }
 
     initialize(callback) {
-        if (window.ethereum) {
-            try {
-                this.web3 = new Web3(window.ethereum);
-                // Request account access
-                window.ethereum.enable();
-            } catch (error) {
-                // User denied account access...
-                console.error("User denied account access")
-            }
-        }
-        if (typeof this.web3 == "undefined") {
-            this.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:7545"));
-            console.log("local ganache provider");
-        }
+        this.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:7545"));
+        console.log("local ganache provider");
+
+        this.web3.eth.net.isListening()
+        .then(() => console.log('is connected'))
+        .catch(e => console.log('Wow. Something went wrong: '+ e));
         
+        console.log("this.web3 : ", this.web3);
 
-        this.web3.eth.getAccounts((error, accts) => {
-           
-            this.owner = accts[0];
+        (async () => {
+            const accounts = await this.web3.eth.getAccounts();
+            console.log(accounts);
+          
+            const balance = await this.web3.eth.getBalance(accounts[0]);
+            console.log("balance", this.web3.utils.fromWei(balance, "ether"));
 
-            this.accounts = accts;
+            this.owner = accounts[0];
+
+            this.accounts = accounts;
             // console.log(this.accounts);
 
-            let counter = 1;
-            
-            while(this.airlines.length < 5) {
-                this.airlines.push(accts[counter++]);
-            }
+            this.airlines.push(accounts[1]);
+            this.airlines.push(accounts[2]);
 
-            while(this.passengers.length < 5) {
-                this.passengers.push(accts[counter++]);
-            }
+            this.passengers.push(accounts[3]);
+            this.passengers.push(accounts[4]);
 
-            this.flightSuretyData.methods.authorizeCaller(this.appAddress).send({from: this.owner}, (error, result) => {
-                if(error) {
-                    console.log("Could not authorize the App contract");
-                    console.log(error);
-                }
-            });
+            console.log("assigned airlines and passengers");
+
+            console.log("this.flightSuretyApp", this.flightSuretyApp);
+            console.log("this.flightSuretyData", this.flightSuretyData);
 
             callback();
-        });
+          })();
     }
 
     isOperational(callback) {
        let self = this;
-       self.flightSuretyApp.methods
+       this.flightSuretyApp.methods
             .isOperational()
             .call({ from: self.owner}, callback);
     }
@@ -77,37 +69,51 @@ export default class Contract {
             flight: flight,
             timestamp: Math.floor(Date.now() / 1000)
         } 
-        self.flightSuretyApp.methods
+        this.flightSuretyApp.methods
             .fetchFlightStatus(payload.airline, payload.flight, payload.timestamp)
             .send({ from: self.owner}, (error, result) => {
                 callback(error, payload);
             });
     }
 
+    registerAirline(airlineAddress, callback) {
+        console.log(`
+            register airline with input 
+            airline: ${airlineAddress}`);
+
+            let payload = {
+                airline : airlineAddress
+            } 
+
+        this.flightSuretyApp.methods
+            .registerAirline(payload.airline)
+            .send(
+                {from:this.owner}, (error, result) => {
+                    callback(error, payload);
+            });
+    }
+
     registerFlight(airlineAddress, flight, callback) {
-        console.register(`
+        console.log(`
             register flight with input 
-            airline: ${airline}
+            airline: ${airlineAddress}
             flight: ${flight}`);
 
-        let timestampTmp = Math.floor(Date.now() / 1000);
         let self = this;
         let payload = {
             airline : airlineAddress,
-            flight: flight,
-            timestamp: timestampTmp
+            flight: flight
         } 
 
-        self.timestamp = timestampTmp;
-        self.flightSuretyApp.methods
-            .registerFlight(payload.airline, payload.flight, payload.timestamp)
+        this.flightSuretyApp.methods
+            .registerFlight(payload.airline, payload.flight)
             .send({ from: self.owner}, (error, result) => {
                 callback(error, payload);
             });
     }
 
     fund( airlineAdress, funds, callback) {
-        console.fund(`airline fund with input 
+        console.log(`airline fund with input 
             airline: ${airlineAdress} and funds :${funds}`);
         let self = this;
         let payload = {
@@ -120,20 +126,20 @@ export default class Contract {
             payload.whoFund = accounts[0];
         });
 
-        self.flightSuretyApp.methods
+        this.flightSuretyApp.methods
             .fund(payload.airline)
             .send({ 
                 from: payload.whoFund,
                 value: payload.value
-            })
-            .send({ from: self.owner}, (error, result) => {
+            },
+            (error, result) => {
                 callback(error, payload);
             });
     }
 
     registerPassenger( airline, flight, passenger, passengerName, 
         passengerSurname, callback) {
-        console.register(`register flight with input 
+        console.log(`register flight with input 
             airline: ${airline}
             flight: ${flight},
             passengerName: ${passengerName},
@@ -145,20 +151,18 @@ export default class Contract {
             flight: flight,
             passengerAddress :passenger,
             passengerName : passengerName,
-            passengerSurname : passengerSurname,
-            timestamp: self.timestamp
+            passengerSurname : passengerSurname
         } 
 
-        self.flightSuretyApp.methods
+        this.flightSuretyApp.methods
             .registerPassenger(
                 payload.airline,
                  payload.flight,
                  payload.passengerAddress,
                  payload.passengerName,
-                 payload.passengerSurname,
-                 payload.timestamp)
+                 payload.passengerSurname)
             .send({ from: self.owner}, (error, result) => {
-                a(error, payload);
+                callback(error, payload);
             });
     }
 
@@ -169,13 +173,18 @@ export default class Contract {
             airline: airline,
             flight: flight,
             price: amount,
-            passengerAddress: passenger,
-            timestamp: self.timestamp
+            passengerAddress: passenger
         } 
 
-        self.flightSuretyData.methods
-            .buy(payload._addressAirline, payload.flight, payload.passengerAddress, payload.timestamp)
-            .send({ from: payload.passengerAddress, value: priceInWei,
+        self.flightSuretyApp.methods
+            .buy(payload._addressAirline,
+                 payload.flight,
+                  payload.passengerAddress
+                  )
+            .send(
+            { 
+                from: payload.passengerAddress, 
+                value: priceInWei,
                 gas: 500000,
                 gasPrice: 1
             }, (error, result) => {

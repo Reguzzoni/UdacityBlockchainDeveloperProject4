@@ -27,8 +27,8 @@ let flightSuretyApp = new web3.eth.Contract(FlightSuretyApp.abi, config.appAddre
 web3.eth.getAccounts((error, accounts) => {
   try {
     console.log(`start create oracle with accounts : ${JSON.stringify(accounts)}`);
-    console.log(`start create oracle with accounts : ${accounts.slice(10,20)}`);
-    createOracles(accounts.slice(10,20));
+    console.log(`start create oracle with accounts : ${accounts.slice(10, 20)}`);
+    createOracles(accounts.slice(0, 10));
     console.log(`end create oracle`);
   } catch (error) {
     console.log(`Error into createOracles : ${error}`)
@@ -68,7 +68,7 @@ flightSuretyApp.events.OracleRequest(
       let _airline = event.returnValues.airline;
       let _flight = event.returnValues.flight;
       let _timestamp = event.returnValues.timestamp;
-      let _status = getRandomStatus();
+      let _status = 20;
 
       console.log(` Event Values : 
         _index ${_index} ,
@@ -117,23 +117,40 @@ function createOracles(accounts) {
       for (var idxCountOracle = 0;
         idxCountOracle < 10;
         idxCountOracle++) {
-        console.log(`accounts[idxCountOracle] : ${accounts[idxCountOracle]}`)
+        console.log(`accounts[idxCountOracle] test 1 : ${accounts[idxCountOracle]}`)
+        
+        let acc = accounts[idxCountOracle];
+
         flightSuretyApp.methods.registerOracle().send(
           {
-            from: accounts[idxCountOracle],
-            value: web3.utils.toWei("1", 'ether')
+            from: acc,
+            value: web3.utils.toWei("2", 'ether'),
+            gas:3000000
           }, (error, result) => {
-            // get indexes and save in a list
-            flightSuretyApp.methods.getMyIndexes().call({
-              from: accounts[idxCountOracle]
-            }).then(result => {
-              oracles.push(result);
-              console.log(`Registered Oracle with success.`);
-            }).catch ((error) => {
-              console.log(`Error into createOracles - getMyIndexes : ${error}`);
-            });
-          } 
-        )}
+            console.log("registerOracle error : " , error, " result : ", result)
+            // check is oracle index
+            flightSuretyApp.methods.isOracleAddress(
+              acc).send({
+                from: acc
+              }).then(result => {
+                //console.log("isOracleAddress : ", result)
+                if (result) {
+                  // get indexes and save in a list
+                  flightSuretyApp.methods.getMyIndexes().send({
+                    from: acc
+                  }).then(result => {
+                    oracles.push(result);
+                    console.log(`Registered Oracle with success.`);
+                  }).catch((error) => {
+                    console.log(`Error into createOracles - getMyIndexes : ${error}`);
+                  });
+                }
+
+              });
+
+          }
+        )
+      }
     } catch (error) {
       console.log(`Error into createOracles - promise : ${error}`)
     }

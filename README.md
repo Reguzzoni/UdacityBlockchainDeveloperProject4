@@ -1,3 +1,13 @@
+# START 
+npm install
+npm run postinstall
+
+# version libraries
+Truffle v5.1.10 (core: 5.1.10)
+Solidity - ^0.4.24 (solc-js)
+Node v10.18.0
+Web3.js v1.2.1
+
 # FlightSurety
 
 FlightSurety is a sample application project for Udacity's Blockchain course.
