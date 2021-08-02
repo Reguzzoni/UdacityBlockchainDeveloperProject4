@@ -61,11 +61,10 @@ import './flightsurety.css';
             let passenger = DOM.elid('flight-Passenger_passengerAddress').value;
             let name = DOM.elid('Passenger_passengerName').value;
             let surname = DOM.elid('Passenger_passengerSurname').value;
-            let age = DOM.elid('Passenger_passengerAge').value;
             
             // Write transaction
             contract.registerPassenger(
-                airline, flight, passenger, name, surname, age, (error, result) => {
+                airline, flight, passenger, name, surname, (error, result) => {
                 display(' registerPassenger ', 'Passenger Registered', [ { label: 'Success', error: error, value: result.flight + ' ' + result.passengerName} ]);
             });
         })

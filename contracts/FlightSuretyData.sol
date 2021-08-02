@@ -125,7 +125,6 @@ contract FlightSuretyData {
         address passengerAddress;
         string name;
         string surname;
-        uint age;
         FlightInsurance insurance;
         uint numberPassenger;
     }
@@ -171,6 +170,8 @@ contract FlightSuretyData {
     {
         contractOwner = msg.sender;
         _registerAirline(_addressAirline);
+        // first airline already funded at start
+        mapAirline[_addressAirline].isFunded = true;
     }
 
     /********************************************************************************************/
@@ -200,8 +201,8 @@ contract FlightSuretyData {
         _;
     }
 
-    modifier requireAuthorized() {
-        require(mapAuthorized[msg.sender] == 1, "Caller is not authorized");
+    modifier requireAuthorized(address _msgSender) {
+        require(mapAuthorized[_msgSender] == 1, "Caller is not authorized");
         _;
     }
 
@@ -304,13 +305,12 @@ contract FlightSuretyData {
     function registerPassenger (
         address _addressAirline,
         string _flight,
-        address _passengerAddress,
+        address _addressPassenger,
         string _name,
-        string _surname,
-        uint _age
+        string _surname
     )
         requireIsOperational 
-        requireAuthorized 
+        requireAuthorized(_addressAirline)
     external {
         
         require( mapAirline[_addressAirline].isFunded, "Airline is not already funded");
@@ -322,7 +322,7 @@ contract FlightSuretyData {
         /*require(mapFlight[_flightKey].status == STATUS_ACCEPT_PASSENGERS, 
             "Flight status doesn't accept anymore passengers");*/
 
-        require(mapFlight[_flightKey].mapPassenger[_passengerAddress].numberPassenger == 0,
+        require(mapFlight[_flightKey].mapPassenger[_addressPassenger].numberPassenger == 0,
             'Already registered Passenger');
 
         require(mapFlight[_flightKey].countPassengers < LIMIT_PASSENGER,
@@ -334,18 +334,17 @@ contract FlightSuretyData {
         FlightInsurance memory _insurance;
 
         Passenger memory _passenger = Passenger({
-            passengerAddress : _passengerAddress,
+            passengerAddress : _addressPassenger,
             name : _name,
-            surname: _surname, 
-            age: _age,
+            surname: _surname,
             insurance : _insurance,
             numberPassenger : countPassengers
         });
 
-        mapFlight[_flightKey].mapPassenger[_passengerAddress] = _passenger;
+        mapFlight[_flightKey].mapPassenger[_addressPassenger] = _passenger;
         mapFlight[_flightKey].countPassengers = countPassengers;
 
-        emit RegisterPassengerEvent(_addressAirline, _flight, _passengerAddress);
+        emit RegisterPassengerEvent(_addressAirline, _flight, _addressPassenger);
     }
 
     function isPassenger(
@@ -381,7 +380,7 @@ contract FlightSuretyData {
         string _flight
     ) external
         requireIsOperational 
-        requireAuthorized
+        requireAuthorized(_addressAirline)
     {
         bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         require(! (mapFlight[_flightKey].numberFlight > 0), "Flight has already been registered");
@@ -426,10 +425,11 @@ contract FlightSuretyData {
     *
     */   
     function registerAirline ( 
-        address _addressAirline
+        address _addressAirline,
+        address _msgSender
     )
         requireIsOperational
-        requireAuthorized 
+        requireAuthorized(_msgSender)
     external
     {   
         require(getAirlineNumberByAddress(_addressAirline) == 0, 
@@ -444,34 +444,12 @@ contract FlightSuretyData {
     function _registerAirline ( 
         address _addressAirline
     )
-        requireIsOperational
     internal
     {
         countAirline = countAirline.add(1);
-        /*Airline memory _newAirline = Airline({
-            numberAirline : countAirline,
-            addressAirline : _addressAirline,
-            isFunded : false
-        });
-        mapAirline[_addressAirline] = _newAirline;*/
         mapAirline[_addressAirline].numberAirline = countAirline;
         mapAirline[_addressAirline].addressAirline = _addressAirline;
-        
         mapCountToAddressAirline[countAirline] = _addressAirline;
-    }
-
-    function getAirlines()
-    external
-    view
-    requireIsOperational
-    returns (address[] _addressedAirline){
-        for (uint idxAirlines = 1 ;
-            idxAirlines < countAirline; 
-            idxAirlines++) {
-                address _addressAirlineTmp = mapCountToAddressAirline[idxAirlines];
-                _addressedAirline[idxAirlines] = _addressAirlineTmp;
-        }
-        return _addressedAirline;
     }
 
     function getAirlinesCount()
@@ -537,8 +515,8 @@ contract FlightSuretyData {
         string _flight,
         uint _status,
         uint _timestamp) 
-    requireIsOperational 
-    requireAuthorized 
+    requireIsOperational
+    requireAuthorized(msg.sender)
     external 
     {
         bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
@@ -566,7 +544,7 @@ contract FlightSuretyData {
     external
     payable 
     requireIsOperational 
-    requireAuthorized {
+    {
         mapAirline[_addressAirline].isFunded = true;
         emit FundedEvent(_addressAirline);
     }
@@ -586,7 +564,7 @@ contract FlightSuretyData {
         external
         payable
         requireIsOperational
-        requireAuthorized 
+        requireAuthorized(msgSender)
         returns (uint)
     {       
         bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
@@ -651,7 +629,7 @@ contract FlightSuretyData {
     )
         external
         requireIsOperational
-        requireAuthorized 
+        requireAuthorized(_passengerAddress)
     {
         uint _amountToPay = mapPaymentsToDo[_passengerAddress];
         mapPaymentsToDo[_passengerAddress] = 0;

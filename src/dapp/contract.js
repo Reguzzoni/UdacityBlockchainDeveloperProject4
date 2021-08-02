@@ -10,6 +10,7 @@ export default class Contract {
         this.web3 = new Web3(new Web3.providers.HttpProvider(config.url));
         this.flightSuretyApp = new this.web3.eth.Contract(FlightSuretyApp.abi, config.appAddress);
         this.flightSuretyData = new this.web3.eth.Contract(FlightSuretyData.abi, config.appAddress);
+        console.log(`config.appAddress ${config.appAddress}`);
         this.initialize(callback);
         this.owner = null;
         this.airlines = [];
@@ -29,7 +30,7 @@ export default class Contract {
             }
         }
         if (typeof this.web3 == "undefined") {
-            this.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:8545"));
+            this.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:7545"));
             console.log("local ganache provider");
         }
         
@@ -106,8 +107,8 @@ export default class Contract {
     }
 
     fund( airlineAdress, funds, callback) {
-        console.register(`airline flight with input 
-            airline: ${airline}`);
+        console.fund(`airline fund with input 
+            airline: ${airlineAdress} and funds :${funds}`);
         let self = this;
         let payload = {
             airline : airlineAdress,
@@ -131,13 +132,12 @@ export default class Contract {
     }
 
     registerPassenger( airline, flight, passenger, passengerName, 
-        passengerSurname, passengerAge, callback) {
+        passengerSurname, callback) {
         console.register(`register flight with input 
             airline: ${airline}
             flight: ${flight},
             passengerName: ${passengerName},
-            passengerSurname: ${passengerSurname},
-            passengerAge: ${passengerAge}`);
+            passengerSurname: ${passengerSurname}`);
 
         let self = this;
         let payload = {
@@ -146,7 +146,6 @@ export default class Contract {
             passengerAddress :passenger,
             passengerName : passengerName,
             passengerSurname : passengerSurname,
-            passengerAge : passengerAge,
             timestamp: self.timestamp
         } 
 
@@ -157,7 +156,6 @@ export default class Contract {
                  payload.passengerAddress,
                  payload.passengerName,
                  payload.passengerSurname,
-                 payload.passengerAge,
                  payload.timestamp)
             .send({ from: self.owner}, (error, result) => {
                 a(error, payload);

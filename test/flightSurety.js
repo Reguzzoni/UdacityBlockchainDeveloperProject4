@@ -11,16 +11,18 @@ contract('Flight Surety Tests', async (accounts) => {
     let airline3 = accounts[3];
     let airline4 = accounts[4];
     let airline5 = accounts[5];
+    let airline6 = accounts[6];
+    let airline7 = accounts[7];
     let flight1 = "ND1309";
     let flight2 = "ND1310";
-    let passenger1 = accounts[6];
+    let passenger1 = accounts[8];
 
     let timestamp1 = new Date().getTime();
     let timestamp2 = new Date().getTime();
 
     before('setup contract', async () => {
         config = await Test.Config(accounts);
-        await config.flightSuretyData.authorizeCaller(config.flightSuretyApp.address);
+        await config.flightSuretyData.authorizeCaller(config.firstAirline);
     });
 
     /****************************************************************************************/
@@ -43,7 +45,7 @@ contract('Flight Surety Tests', async (accounts) => {
         // Ensure that access is denied for non-Contract Owner account
         let accessDenied = false;
         try {
-            await config.flightSuretyData.setOperatingStatus(false, { from: config.testAddresses[2] });
+            await config.flightSuretyData.setOperatingStatus(false, { from: airline2 });
         }
         catch (e) {
             accessDenied = true;
@@ -80,14 +82,13 @@ contract('Flight Surety Tests', async (accounts) => {
 
         let reverted = false;
         try {
-            await config.flightSurety.isOperational(true);
-            console.log(' config.flightSurety.isOperational(true);')
+            await config.flightSuretyData.isOperational(true);
         }
         catch (e) {
             console.log(`Catched error ${e}`)
             reverted = true;
         }
-        assert.equal(reverted, true, "Access not blocked for requireIsOperational");
+        assert.equal(reverted, false, "Access not blocked for requireIsOperational");
 
         // Set it back for other tests to work
         await config.flightSuretyData.setOperatingStatus(true);
@@ -100,15 +101,21 @@ contract('Flight Surety Tests', async (accounts) => {
         console.log("Test 5");
 
         console.log(`Ready to getAirlines`);
-        let countTotal = await config.flightSuretyData.getAirlinesCount(
-            { from: config.firstAirline });
-        let numberAirline = await config.flightSuretyData.getAirlineNumberByAddress(
-            config.firstAirline,
-            { from: config.firstAirline });
+        let countTotal;
+        let numberAirline;
 
-        console.log(`countTotal airline is : ${countTotal}`);
-        console.log(`numberAirline is : ${numberAirline}`);
+        try {
+            countTotal = await config.flightSuretyData.getAirlinesCount();
+            console.log(`countTotal airline is : ${countTotal}`);
+            
+            numberAirline = await config.flightSuretyData.getAirlineNumberByAddress(
+                config.firstAirline);
+            console.log(`numberAirline is : ${numberAirline}`);
+            console.log(`config.firstAirline is : ${config.firstAirline}`);
 
+        } catch(e) {
+            console.log(`Error :${e}`)
+        }
         // ASSERT
         assert.equal(countTotal, 1, "Empty result");
         assert.equal(numberAirline, 1, "Empty result");
@@ -119,22 +126,25 @@ contract('Flight Surety Tests', async (accounts) => {
 
         console.log("Test 6");
         // ARRANGE
+        await config.flightSuretyData.authorizeCaller(config.firstAirline);
+        let isAuthorized = await config.flightSuretyData.isAuthorizedCaller(config.firstAirline);
+        console.log(`is authorized caller :${isAuthorized}`);
 
         let checkAirlineAlreadyExists = await config.flightSuretyData.getAirlineAddressByNumber(
-            2);
+            1);
 
         let checkNumberAirline = await config.flightSuretyData.getAirlineNumberByAddress(
-            airline2);
+            config.firstAirline);
 
         console.log(`checkAirlineAlreadyExists is : ${checkAirlineAlreadyExists}`);
         console.log(`checkNumberAirline is : ${checkNumberAirline}`);
 
         // ACT
         try {
-            await config.flightSuretyApp.registerAirline(
+            await config.flightSuretyData.registerAirline(
                 airline2,
                 {
-                    from: airline2
+                    from: config.firstAirline
                 });
         }
         catch (e) {
@@ -166,7 +176,8 @@ contract('Flight Surety Tests', async (accounts) => {
 
     /**
      * --------- TEST TODO --------- 
-     * TEST 7  : AIRLINE - REGISTER AIRLINE with fund
+     * TEST 7.a : AIRLINE - REGISTER AIRLINE with fund
+     * TEST 7.b : AIRLINE - REGISTER AIRLINE error cause created by not registered account
      * TEST 8  : FLIGHT - REGISTER FLIGHT
      * TEST 9  : PASSENGER - REGISTER PASSENGER
      * TEST 10 : PASSENGER - ADD PASSENGER TO MULTIPLE FLIGHT
@@ -180,21 +191,26 @@ contract('Flight Surety Tests', async (accounts) => {
 
     it('(airline) register an Airline using registerAirline() if it is funded', async () => {
 
-        console.log("Test 7");
+        console.log("Test 7.a");
         // ARRANGE
         let fundValueNeeded = web3.utils.toWei("10", "ether");
 
         let checkAirlineAlreadyExists = await config.flightSuretyData.getAirlineAddressByNumber(
-            2);
+            1);
 
         let checkNumberAirline = await config.flightSuretyData.getAirlineNumberByAddress(
-            airline2);
+            config.firstAirline);
 
         console.log(`checkAirlineAlreadyExists is : ${checkAirlineAlreadyExists}`);
         console.log(`checkNumberAirline is : ${checkNumberAirline}`);
 
+        await config.flightSuretyData.authorizeCaller(config.firstAirline);
+        let isAuthorized = await config.flightSuretyData.isAuthorizedCaller(config.firstAirline);
+        console.log(`is authorized caller :${isAuthorized}`);
+
         // ACT
         try {
+            console.log("Start Fund");
             await config.flightSuretyApp.fund(
                 airline2,
                 {
@@ -202,10 +218,20 @@ contract('Flight Surety Tests', async (accounts) => {
                     value: fundValueNeeded
                 }
             );
+
+            //check is funded
+            let isFundedAirline2 = await config.flightSuretyData.isFund(
+                airline2
+            );
+
+            console.log(`Check are funded 
+                isFundedAirline2 : ${isFundedAirline2}`)
+
+            console.log("Start Register airline");
             await config.flightSuretyApp.registerAirline(
                 airline2,
                 {
-                    from: airline2
+                    from: config.firstAirline
                 });
         }
         catch (e) {
@@ -221,14 +247,79 @@ contract('Flight Surety Tests', async (accounts) => {
         console.log(`numberAirline is : ${numberAirline}`);
 
         // ASSERT
-        assert.equal(countTotal, 2, ` correcly airline cause doesnt result as total`);
-        assert.equal(numberAirline, 2, ` correcly airline cause don't exists numberAirline`);
+        assert.equal(countTotal, 2, `  doesnt result as total`);
+        assert.equal(numberAirline, 2, `  don't exists numberAirline`);
+
+    });
+
+         // check register airline multicalls
+         it('(airline) only existing accounts can register an airlines', async () => {
+
+            console.log("Test 7b");
+            // ARRANGE
+            let fundValueNeeded = web3.utils.toWei("10", "ether");
+            
+            let checkAirlineAlreadyExists = await config.flightSuretyData.getAirlineAddressByNumber(
+                6);
+    
+            let checkNumberAirline = await config.flightSuretyData.getAirlineNumberByAddress(
+                airline6);
+    
+            console.log(`checkAirlineAlreadyExists is : ${checkAirlineAlreadyExists}`);
+            console.log(`checkNumberAirline is : ${checkNumberAirline}`);
+
+            // ACT
+            try {
+                console.log(`Start fund airline 7`);
+                await config.flightSuretyApp.fund(
+                    airline7,
+                    {
+                        from: airline6,
+                        value: fundValueNeeded
+                    }
+                );
+    
+                //check is funded
+                let isFundedAirline7 = await config.flightSuretyData.isFund(
+                    airline7
+                );
+    
+                console.log(`Check are funded 
+                    isFundedAirline7 : ${isFundedAirline7}`)
+    
+    
+                console.log(`Start register airline 7`);
+                await config.flightSuretyApp.registerAirline(
+                    airline7,
+                    {
+                        from: airline6
+                    });
+            }
+            catch (e) {
+                console.log(`Catched error ${e}`)
+            }
+            
+        // get airlines
+        let countTotal = await config.flightSuretyData.getAirlinesCount();
+        let numberAirline7 = await config.flightSuretyData.getAirlineNumberByAddress(
+            airline7);
+
+        console.log(`countTotal airline is : ${countTotal}`);
+        console.log(`numberAirline7 is : ${numberAirline7}`);
+
+        // ASSERT
+        assert.equal(countTotal, 2, ` doesnt result as total`);
+        assert.equal(numberAirline7, 0, ` don't exists numberAirline`);
 
     });
 
     it('(flight) register a flight using registerFlight()', async () => {
 
         console.log("Test 8");
+
+        await config.flightSuretyData.authorizeCaller(airline2);
+        let isAuthorized = await config.flightSuretyData.isAuthorizedCaller(airline2);
+        console.log(`is authorized caller :${isAuthorized}`);
 
         // ARRANGE
         // ACT
@@ -254,8 +345,8 @@ contract('Flight Surety Tests', async (accounts) => {
         console.log(`isFlight is : ${isFlight}`);
 
         // ASSERT
-        assert.equal(countTotal, 1, ` correcly flight cause doesnt result as total`);
-        assert.equal(isFlight, true, ` correcly flight cause don't exists numberAirline`);
+        assert.equal(countTotal, 1, ` doesnt result as total`);
+        assert.equal(isFlight, true, ` don't exists flight`);
     });
 
     it('(passenger) register a passenger using registerPassenger()', async () => {
@@ -283,7 +374,6 @@ contract('Flight Surety Tests', async (accounts) => {
                 passenger1,
                 "testName",
                 "testSurname",
-                18,
                 {
                     from: airline2
                 });
@@ -306,8 +396,8 @@ contract('Flight Surety Tests', async (accounts) => {
         console.log(`isPassenger is : ${isPassenger}`);
 
         // ASSERT
-        assert.equal(countTotal, 1, ` correcly Passenger cause doesnt result as total`);
-        assert.equal(isPassenger, true, ` correcly Passenger cause don't exists numberAirline`);
+        assert.equal(countTotal, 1, ` doesnt result as total`);
+        assert.equal(isPassenger, true, ` don't exists isPassenger`);
     });
 
 
@@ -323,7 +413,6 @@ contract('Flight Surety Tests', async (accounts) => {
                 passenger1,
                 "testName",
                 "testSurname",
-                18,
                 {
                     from: passenger1
                 });
@@ -346,8 +435,8 @@ contract('Flight Surety Tests', async (accounts) => {
         console.log(`isPassenger is : ${isPassenger}`);
 
         // ASSERT
-        assert.equal(countTotal, 1, `registered correcly Passenger cause doesnt result as total`);
-        assert.equal(isPassenger, true, `registered correcly Passenger cause don't exists numberAirline`);
+        assert.equal(countTotal, 1, `doesnt result as total`);
+        assert.equal(isPassenger, true, `don't exists passenger`);
     });
 
     it('(passenger)  buy ', async () => {
@@ -355,6 +444,7 @@ contract('Flight Surety Tests', async (accounts) => {
         console.log("Test 11");
         try {
 
+            await config.flightSuretyData.authorizeCaller(passenger1);
             let isAuthorized = await config.flightSuretyData.isAuthorizedCaller(passenger1);
             console.log(`is authorized caller :${isAuthorized}`);
 
@@ -402,7 +492,7 @@ contract('Flight Surety Tests', async (accounts) => {
 
         console.log(`numberInsurance : ${numberInsurance}`)
         console.log(`numberAllInsurance : ${numberAllInsurance}`)
-        assert.equal(result, true, "Passenger can buy insurance");
+        assert.equal(result, true, "Passenger cant buy insurance");
     });
 
     it('(passenger)  credit ', async () => {
@@ -512,9 +602,9 @@ contract('Flight Surety Tests', async (accounts) => {
         console.log(`numberAirline4 is : ${numberAirline4}`);
 
         // ASSERT
-        assert.equal(countTotal, 4, ` correcly airline cause doesnt result as total`);
-        assert.equal(numberAirline3, 3, ` correcly airline cause don't exists numberAirline`);
-        assert.equal(numberAirline4, 4, ` correcly airline cause don't exists numberAirline`);
+        assert.equal(countTotal, 4, `  doesnt result as total`);
+        assert.equal(numberAirline3, 3, `  don't exists numberAirline3`);
+        assert.equal(numberAirline4, 4, `  don't exists numberAirline4`);
 
     });
 
@@ -564,8 +654,8 @@ contract('Flight Surety Tests', async (accounts) => {
         console.log(`numberAirline5 is : ${numberAirline5}`);
 
         // ASSERT
-        assert.equal(countTotal, 4, ` correcly airline cause doesnt result as total`);
-        assert.equal(numberAirline5, 0, ` correcly airline cause don't exists numberAirline`);
+        assert.equal(countTotal, 4, ` doesnt result as total`);
+        assert.equal(numberAirline5, 0, ` don't exists numberAirline`);
 
     });
 
@@ -593,11 +683,12 @@ contract('Flight Surety Tests', async (accounts) => {
                 assert.equal(oracleIndexes.length, 3, 'Oracle should be registered with three indexes');
             }
         });
-
+/*
     it("(oracle) Simulating server",
         //Server will loop through all registered oracles, identify those oracles for which the OracleRequest event applies,
         // and respond by calling into FlightSuretyApp contract with random status code"
         async () => {
+            console.log("Test 16");
             // ARRANGE
             let _airline = airline2;
             let _flight = flight1;
@@ -630,10 +721,10 @@ contract('Flight Surety Tests', async (accounts) => {
                             oracleIndexes : ${JSON.stringify(oracleIndexes)},
                             oracleIndexes[idx] ${oracleIndexes[idx]}
                         `
-                        /*
-                            accounts[idxAccountOracle] : ${accounts[idxAccountOracle]},
-                            accounts : ${accounts},
-                        */
+                        
+                        //    accounts[idxAccountOracle] : ${accounts[idxAccountOracle]},
+                        //    accounts : ${accounts},
+                        
                         );
 
                         await config.flightSuretyApp.submitOracleResponse(
@@ -672,5 +763,5 @@ contract('Flight Surety Tests', async (accounts) => {
             console.log(`flightStatus : ${flightStatus}`);
             assert.equal(STATUS_CODE_LATE_AIRLINE, flightStatus, 'Oracle didnt change status');
         });
-
+*/
 });

@@ -1,11 +1,13 @@
 pragma solidity ^0.4.25;
 
+
 // It's important to avoid vulnerabilities due to numeric overflow bugs
 // OpenZeppelin's SafeMath library, when used correctly, protects agains such bugs
 // More info: https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2018/november/smart-contract-insecurity-bad-arithmetic/
 
 // app logic and oracles code
 import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+//import "./FlightSuretyData.sol";
 
 /************************************************** */
 /* FlightSurety Smart Contract                      */
@@ -148,10 +150,15 @@ contract FlightSuretyApp {
     {   
         success = false;
          
-        uint countAirlines = flightSuretyData.getAirlinesCount();
+        bool isAirline = flightSuretyData.isAirline(msg.sender);
+        bool isFunded = flightSuretyData.isFund(msg.sender);
 
+        require(isAirline, "Airline must exist to register a new airline");
+        require(isFunded, "Airline must be funded to register a new airline");
+
+        uint countAirlines = flightSuretyData.getAirlinesCount();
         if(countAirlines < M) {
-            flightSuretyData.registerAirline(_addressAirline);
+            flightSuretyData.registerAirline(_addressAirline, msg.sender);
             emit RegisterAirlineEvent(_addressAirline);
 
         } else {
@@ -173,7 +180,7 @@ contract FlightSuretyApp {
             uint consensusLimit = countAirlines.div(CONSENSUS_50);
             if (multiCalls[owner].length >= consensusLimit) {
                 success = true;
-                flightSuretyData.registerAirline(_addressAirline);
+                flightSuretyData.registerAirline(_addressAirline, msg.sender);
                 emit RegisterAirlineEvent(_addressAirline);
                 multiCalls[owner] = new address[](0);
             }
@@ -205,15 +212,14 @@ contract FlightSuretyApp {
         string _flight,
         address _addressPassenger,
         string _name,
-        string _surname,
-        uint _age
+        string _surname
     )
         requireIsOperational 
         external                        
     {
         flightSuretyData.registerPassenger(
-            _addressAirline, _flight, _addressPassenger, 
-            _name, _surname, _age);
+            _addressAirline, _flight, _addressPassenger,
+            _name, _surname);
         emit RegisterPassengerEvent(_addressAirline);
     }
     
@@ -235,6 +241,7 @@ contract FlightSuretyApp {
         emit ProcessedFlightEvent(_flight);
     }
 
+    /*
     function getAirlines ()
         external 
         requireIsOperational
@@ -242,6 +249,7 @@ contract FlightSuretyApp {
     {
         return flightSuretyData.getAirlines();
     }
+    */
 
     // Generate a request for oracles to fetch flight information
     function fetchFlightStatus
@@ -501,8 +509,9 @@ contract FlightSuretyApp {
 /*contract ExerciseC6C {
     function updateEmployee(string id, uint256 sales, uint256 bonus) external;
 }*/
-
+ 
 contract FlightSuretyData {
+    
 
     function isOperational() 
                             public 
@@ -511,12 +520,11 @@ contract FlightSuretyData {
         external;
 
     function registerPassenger (
-        address airlineAddress,
+        address _addressAirline,
         string _flight,
-        address _passengerAddress,
+        address _addressPassenger,
         string _name,
-        string _surname,
-        uint _age
+        string _surname
     )
     external;
 
@@ -526,7 +534,8 @@ contract FlightSuretyData {
     ) external;
 
     function registerAirline ( 
-        address _addressAirline
+        address _addressAirline,
+        address _msgSender
         // optional , bool isAdmin 
     )
     external;
@@ -561,15 +570,7 @@ contract FlightSuretyData {
         uint _timestamp, 
         uint _status)
     external;
-
-    // needs getAirlines to registerAirline with consensus
-    function getAirlines()
-    external
-    view 
-    returns (address[] _addressedAirline);
-
-    // needs isAirline cause test require this
-    //let result = await config.flightSuretyData.isAirline.call(newAirline); 
+    
     function isAirline( address _addressAirline)
     external
     view 
@@ -586,85 +587,98 @@ contract FlightSuretyData {
     view
     returns (uint);
 
-    // get airline by address if exists
-    function getAirlineNumberByAddress(address[] _addressedAirline)
+    function isFund(address _addressAirline)
+    public
+    view 
+    returns (bool);
+}
+
+
+
+    // needs getAirlines to registerAirline with consensus
+    /*function getAirlines()
     external
     view 
-    returns (uint);
+    returns (address[] _addressedAirline);
+*/
+    // needs isAirline cause test require this
+    //let result = await config.flightSuretyData.isAirline.call(newAirline); 
+    
+
+    // get airline by address if exists
+    /*function getAirlineNumberByAddress(address[] _addressedAirline)
+    external
+    view 
+    returns (uint);*/
 
     // check if is flight 
-    function isFlight(
+    /*function isFlight(
         address _addressAirline,
         string _flight
     ) 
     external 
     view 
-    returns(bool);
+    returns(bool);*/
 
     // get flight counter
-    function getFlightCount()
+    /*function getFlightCount()
     external 
     view 
     returns(uint);
+    */
 
     // get passenger count by flight
-    function getPassengerCountByFlight(
+    /*function getPassengerCountByFlight(
         address _addressAirline,
         string _flight
     )
     external 
-    view ;
+    view ;*/
 
     // check is passenger
-    function isPassenger(
+    /*function isPassenger(
         address _addressAirline,
         string _flight,
         address _addressPassenger
     ) 
     external 
     view 
-    returns(bool);
+    returns(bool);*/
 
     // check has insurance
-    function hasInsurance(
+    /*function hasInsurance(
         address _addressAirline,
         string  _flight,
         address _addressPassenger
     )
         external
         view
-    returns (bool);
+    returns (bool);*/
 
-    function isAuthorizedCaller(address _addressToAuth) 
+    /*function isAuthorizedCaller(address _addressToAuth) 
         external 
         view
-    returns (bool);
+    returns (bool);*/
 
-    function getInsurance(
+    /*function getInsurance(
         address _addressAirline,
         string  _flight,
         address _addressPassenger
     )
         external
         view
-    returns (uint);
+    returns (uint);*/
 
-    function isPayed(
+    /*function isPayed(
         address _addressAirline,
         string  _flight,
         address _addressPassenger
     )
         external
         view
-    returns (bool);
+    returns (bool);*/
 
-    function getCountInsurance()
+    /*function getCountInsurance()
         external
         view
-    returns (uint);
-
-    function isFund(address _addressAirline)
-    public
-    view 
-    returns (bool);
-}
+    returns (uint);*/
