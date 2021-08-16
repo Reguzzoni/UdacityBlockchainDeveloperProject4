@@ -1,10 +1,11 @@
 pragma solidity ^0.4.25;
 
 import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "./oraclize.sol";
 
 // REQUIREMENT 1
 // FlightSuretyData : contracts used for data persistence
-contract FlightSuretyData {
+contract FlightSuretyData is usingOraclize {
     using SafeMath for uint256;
 
     /********************************************************************************************/
@@ -71,12 +72,12 @@ contract FlightSuretyData {
     struct Flight {
         address addressAirline;
         string flight;
-        uint status;
-        uint timestamp;
         mapping(address => Passenger) mapPassenger;
         mapping(uint => address) mapNumberPassengerToAddress;
         uint countPassengers;
         uint numberFlight;
+        uint8 status;
+        uint256 timestamp;
     }
     
     // registration : when flights get registered and approved
@@ -147,7 +148,7 @@ contract FlightSuretyData {
 
     event UpdateFlightEvent(address _airlineAddress, string _flight, uint _status, uint _timestamp);
 
-    event StatusChangedEvent(address _addressAirline, string _flightKey);
+    event StatusChangedEvent(uint8 _status);
 
     // passengers
     event RegisterPassengerEvent(address _airlineAddress,string _flight, address _passenger);
@@ -172,6 +173,15 @@ contract FlightSuretyData {
         _registerAirline(_addressAirline);
         // first airline already funded at start
         mapAirline[_addressAirline].isFunded = true;
+        //authorize airline
+        mapAuthorized[_addressAirline] = 1;
+    }
+
+    function getContractOwner()
+    public
+    view
+    returns (string) {
+        return addressToString(contractOwner);
     }
 
     /********************************************************************************************/
@@ -328,9 +338,9 @@ contract FlightSuretyData {
         require(mapFlight[_flightKey].countPassengers < LIMIT_PASSENGER,
             'All busy');
 
-        uint countPassengers = mapFlight[_flightKey].countPassengers;
-        countPassengers = countPassengers.add(1);
-
+        uint _countPassengers = mapFlight[_flightKey].countPassengers;
+        _countPassengers = _countPassengers.add(1);
+        /*
         FlightInsurance memory _insurance;
 
         Passenger memory _passenger = Passenger({
@@ -340,9 +350,16 @@ contract FlightSuretyData {
             insurance : _insurance,
             numberPassenger : countPassengers
         });
-
+        
         mapFlight[_flightKey].mapPassenger[_addressPassenger] = _passenger;
-        mapFlight[_flightKey].countPassengers = countPassengers;
+        */
+        mapFlight[_flightKey].mapPassenger[_addressPassenger].passengerAddress = _addressPassenger;
+        mapFlight[_flightKey].mapPassenger[_addressPassenger].name = _name;
+        mapFlight[_flightKey].mapPassenger[_addressPassenger].surname = _surname;
+        mapFlight[_flightKey].mapPassenger[_addressPassenger].numberPassenger = _countPassengers;
+
+        mapFlight[_flightKey].mapNumberPassengerToAddress[_countPassengers] = _addressPassenger;
+        mapFlight[_flightKey].countPassengers = _countPassengers;
 
         emit RegisterPassengerEvent(_addressAirline, _flight, _addressPassenger);
     }
@@ -388,6 +405,7 @@ contract FlightSuretyData {
 
         countFlight = countFlight.add(1);
         mapFlight[_flightKey].addressAirline = _addressAirline;
+        mapFlight[_flightKey].flight = _flight;
         mapFlight[_flightKey].numberFlight = countFlight;
         mapFlight[_flightKey].countPassengers = 0;
 
@@ -513,10 +531,11 @@ contract FlightSuretyData {
     function processFlightStatus(
         address _addressAirline, 
         string _flight,
-        uint _status,
-        uint _timestamp) 
+        uint8 _status,
+        uint _timestamp,
+        address _oracleAddress) 
     requireIsOperational
-    requireAuthorized(msg.sender)
+    requireAuthorized(_oracleAddress)
     external 
     {
         bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
@@ -530,14 +549,18 @@ contract FlightSuretyData {
                 idxPassenger <= mapFlight[_flightKey].countPassengers; 
                 idxPassenger++) {
                 address _addressPassenger = mapFlight[_flightKey].mapNumberPassengerToAddress[idxPassenger];
-                
-                creditInsurees(
-                    _addressAirline,
-                    _flight,
-                    _addressPassenger);
+
+                if(_addressPassenger != address(0)) {                   
+                    creditInsurees(
+                        _addressAirline,
+                        _flight,
+                        _addressPassenger);
+                }
             }
         }
-        emit StatusChangedEvent(_addressAirline, _flight);
+
+
+        emit StatusChangedEvent(_status);
     }
 
     function fund( address _addressAirline)
@@ -605,10 +628,11 @@ contract FlightSuretyData {
         require(mapFlight[_flightKey].mapPassenger[_passengerAddress].numberPassenger > 0, 
             "Passenger is not registered");
 
-        require(!(mapFlight[_flightKey].mapPassenger[_passengerAddress].insurance.isPayed),
-            "Insurance is already payed!");
+        /*require(!(mapFlight[_flightKey].mapPassenger[_passengerAddress].insurance.isPayed),
+            "Insurance is already payed!");*/
 
         mapFlight[_flightKey].mapPassenger[_passengerAddress].insurance.isPayed = true;
+
         uint _amountToPay = 
             mapFlight[_flightKey].mapPassenger[_passengerAddress].insurance.payment.amountToPay
             .mul(mapFlight[_flightKey].mapPassenger[_passengerAddress].insurance.payment.multiplier)
@@ -735,12 +759,103 @@ contract FlightSuretyData {
                         )
                         external
                         view
-                        returns(uint) 
+                        returns(uint8) 
     {
         bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         return mapFlight[_flightKey].status;
     }
-    
+
+    // conversion function tiped by stackoverflow
+    function addressToString(address _address)  
+    pure 
+    internal
+    returns (string memory _uintAsString) {
+        bytes32 value = bytes32(uint256(_address));
+        bytes memory alphabet = "0123456789abcdef";
+
+        bytes memory str = new bytes(51);
+        str[0] = "0";
+        str[1] = "x";
+        for (uint i = 0; i < 20; i++) {
+            str[2+i*2] = alphabet[uint(uint8(value[i + 12] >> 4))];
+            str[3+i*2] = alphabet[uint(uint8(value[i + 12] & 0x0f))];
+        }
+        return string(str);
+    }
+
+
+    // conversion function tiped by stackoverflow
+    function uintToString(uint v) 
+    pure 
+    internal
+    returns (string str) {
+        uint maxlength = 100;
+        bytes memory reversed = new bytes(maxlength);
+        uint i = 0;
+        while (v != 0) {
+            uint remainder = v % 10;
+            v = v / 10;
+            reversed[i++] = byte(48 + remainder);
+        }
+        bytes memory s = new bytes(i + 1);
+        for (uint j = 0; j <= i; j++) {
+            s[j] = reversed[i - j];
+        }
+        str = string(s);
+    }
+
+    function getPassengerInfo
+                        (
+                            address _addressAirline,
+                            string _flight,
+                            uint idx
+                        )
+                        public
+                        view
+                        returns(string) 
+    {
+        bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
+        address _addressPassenger = mapFlight[_flightKey].mapNumberPassengerToAddress[idx];
+        mapFlight[_flightKey].mapPassenger[_addressPassenger].passengerAddress;
+        mapFlight[_flightKey].mapPassenger[_addressPassenger].name;
+        mapFlight[_flightKey].mapPassenger[_addressPassenger].surname;
+        mapFlight[_flightKey].mapPassenger[_addressPassenger].numberPassenger;
+        
+        string memory addressPassengerString = strConcat("addressPassengerString :", 
+            addressToString(mapFlight[_flightKey].mapPassenger[_addressPassenger].passengerAddress));
+        string memory nameString = strConcat("name :", 
+            mapFlight[_flightKey].mapPassenger[_addressPassenger].name);
+        string memory surnameString = strConcat("surname :", 
+            mapFlight[_flightKey].mapPassenger[_addressPassenger].surname);
+        string memory numberString = strConcat("numberPassenger :", 
+            uintToString(mapFlight[_flightKey].mapPassenger[_addressPassenger].numberPassenger));
+        
+        string memory part1 = strConcat(addressPassengerString, nameString, surnameString, numberString);
+        
+        return part1;
+    } 
+
+    function getFlightInfo
+                        (
+                            address _addressAirline,
+                            string _flight
+                        )
+                        public
+                        view
+                        returns(string) 
+    {
+        bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
+        string memory addressString = strConcat("airline :", addressToString(mapFlight[_flightKey].addressAirline));
+        string memory flightString = strConcat("flight :", mapFlight[_flightKey].flight);
+        string memory timestampString = strConcat("timestamp :", uintToString(mapFlight[_flightKey].timestamp));
+        string memory countPassString = strConcat("countPassengers :", uintToString(mapFlight[_flightKey].countPassengers));
+        string memory numberString = strConcat("numberFlight :", uintToString(mapFlight[_flightKey].numberFlight));
+        string memory statusString = strConcat("status :", uintToString(mapFlight[_flightKey].status));
+        
+        string memory part1 = strConcat(addressString, flightString, timestampString);
+        string memory part2 = strConcat(countPassString, numberString, statusString);
+        return strConcat(part1, part2);
+    }
 
     /**
     * @dev Fallback function for funding smart contract.

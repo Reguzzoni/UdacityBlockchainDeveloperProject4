@@ -59,12 +59,14 @@ contract('Oracles', async (accounts) => {
             flight,
             timestamp, 
             STATUS_CODE_ON_TIME, 
+            accounts[a],
             { from: accounts[a] });
-
+            
+            console.log("submit oracle with success")
         }
         catch (e) {
           // Enable this when debugging
-          console.log('\nError', idx, oracleIndexes[idx].toNumber(), flight, timestamp, e);
+          //console.log('\nError', idx, oracleIndexes[idx].toNumber(), flight, timestamp, e);
         }
 
       }

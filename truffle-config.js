@@ -48,6 +48,7 @@ const fs = require('fs');
 const yaml = require('js-yaml');
 
 const HDWallet = require('truffle-hdwallet-provider');
+const HDWalletProvider = require('@truffle/hdwallet-provider');
 
 const getReadFileSync = () => {
   // depends if you start from app path or out
@@ -120,12 +121,16 @@ module.exports = {
 
     // manage network rinkeby - copied from lesson
     rinkeby: {
-      provider: () => new HDWallet(getMnemonicKey(), 
-      `https://rinkeby.infura.io/v3/${getInfuraKey()}`,
-       0, 50),
+      networkCheckTimeout: 100000,
+      provider: () => new HDWallet(
+        getMnemonicKey(),
+        `https://rinkeby.infura.io/v3/${getInfuraKey()}`,
+        0, 50
+       ),
       network_id: 4,       // rinkeby's id
-      gas: 4500000,        // rinkeby has a lower block limit than mainnet
-      gasPrice: 10000000000
+      gas: 450000,        // rinkeby has a lower block limit than mainnet
+      gasPrice: 400000,
+      gasLimit: 9007199254740991
     },
 
     // Useful for private networks

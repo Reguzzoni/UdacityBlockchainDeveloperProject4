@@ -107,13 +107,13 @@ contract('Flight Surety Tests', async (accounts) => {
         try {
             countTotal = await config.flightSuretyData.getAirlinesCount();
             console.log(`countTotal airline is : ${countTotal}`);
-            
+
             numberAirline = await config.flightSuretyData.getAirlineNumberByAddress(
                 config.firstAirline);
             console.log(`numberAirline is : ${numberAirline}`);
             console.log(`config.firstAirline is : ${config.firstAirline}`);
 
-        } catch(e) {
+        } catch (e) {
             console.log(`Error :${e}`)
         }
         // ASSERT
@@ -141,7 +141,7 @@ contract('Flight Surety Tests', async (accounts) => {
 
         // ACT
         try {
-            await config.flightSuretyData.registerAirline(
+            await config.flightSuretyApp.registerAirline(
                 airline2,
                 {
                     from: config.firstAirline
@@ -252,53 +252,53 @@ contract('Flight Surety Tests', async (accounts) => {
 
     });
 
-         // check register airline multicalls
-         it('(airline) only existing accounts can register an airlines', async () => {
+    // check register airline multicalls
+    it('(airline) only existing accounts can register an airlines', async () => {
 
-            console.log("Test 7b");
-            // ARRANGE
-            let fundValueNeeded = web3.utils.toWei("10", "ether");
-            
-            let checkAirlineAlreadyExists = await config.flightSuretyData.getAirlineAddressByNumber(
-                6);
-    
-            let checkNumberAirline = await config.flightSuretyData.getAirlineNumberByAddress(
-                airline6);
-    
-            console.log(`checkAirlineAlreadyExists is : ${checkAirlineAlreadyExists}`);
-            console.log(`checkNumberAirline is : ${checkNumberAirline}`);
+        console.log("Test 7b");
+        // ARRANGE
+        let fundValueNeeded = web3.utils.toWei("10", "ether");
 
-            // ACT
-            try {
-                console.log(`Start fund airline 7`);
-                await config.flightSuretyApp.fund(
-                    airline7,
-                    {
-                        from: airline6,
-                        value: fundValueNeeded
-                    }
-                );
-    
-                //check is funded
-                let isFundedAirline7 = await config.flightSuretyData.isFund(
-                    airline7
-                );
-    
-                console.log(`Check are funded 
+        let checkAirlineAlreadyExists = await config.flightSuretyData.getAirlineAddressByNumber(
+            6);
+
+        let checkNumberAirline = await config.flightSuretyData.getAirlineNumberByAddress(
+            airline6);
+
+        console.log(`checkAirlineAlreadyExists is : ${checkAirlineAlreadyExists}`);
+        console.log(`checkNumberAirline is : ${checkNumberAirline}`);
+
+        // ACT
+        try {
+            console.log(`Start fund airline 7`);
+            await config.flightSuretyApp.fund(
+                airline7,
+                {
+                    from: airline6,
+                    value: fundValueNeeded
+                }
+            );
+
+            //check is funded
+            let isFundedAirline7 = await config.flightSuretyData.isFund(
+                airline7
+            );
+
+            console.log(`Check are funded 
                     isFundedAirline7 : ${isFundedAirline7}`)
-    
-    
-                console.log(`Start register airline 7`);
-                await config.flightSuretyApp.registerAirline(
-                    airline7,
-                    {
-                        from: airline6
-                    });
-            }
-            catch (e) {
-                console.log(`Catched error ${e}`)
-            }
-            
+
+
+            console.log(`Start register airline 7`);
+            await config.flightSuretyApp.registerAirline(
+                airline7,
+                {
+                    from: airline6
+                });
+        }
+        catch (e) {
+            console.log(`Catched error ${e}`)
+        }
+
         // get airlines
         let countTotal = await config.flightSuretyData.getAirlinesCount();
         let numberAirline7 = await config.flightSuretyData.getAirlineNumberByAddress(
@@ -334,6 +334,9 @@ contract('Flight Surety Tests', async (accounts) => {
         catch (e) {
             console.log(`Catched error ${e}`)
         }
+
+        let flightinfo = await config.flightSuretyData.getFlightInfo(airline2, flight1);
+        console.log(`flightinfo : ${flightinfo.toString()}`);
 
         // get airlines
         let countTotal = await config.flightSuretyData.getFlightCount();
@@ -420,7 +423,7 @@ contract('Flight Surety Tests', async (accounts) => {
         catch (e) {
             console.log(`Catched error ${e}`)
         }
-
+        
         // get airlines
         let countTotal = await config.flightSuretyData.getPassengerCountByFlight(
             airline2,
@@ -431,8 +434,14 @@ contract('Flight Surety Tests', async (accounts) => {
             flight1,
             passenger1);
 
+        let passengerInfo = await config.flightSuretyData.getPassengerInfo(
+            airline2,
+            flight1,
+            1);
+
         console.log(`countTotal passenger is : ${countTotal}`);
         console.log(`isPassenger is : ${isPassenger}`);
+        console.log(`passengerInfo is : ${passengerInfo}`);
 
         // ASSERT
         assert.equal(countTotal, 1, `doesnt result as total`);
@@ -677,22 +686,22 @@ contract('Flight Surety Tests', async (accounts) => {
                 and account ${accounts[idxAccountOracle]}`);
 
                 await config.flightSuretyApp.registerOracle(
-                    { 
+                    {
                         from: accounts[idxAccountOracle],
-                        value: valueNeeded ,
-                        gas : 300000
+                        value: valueNeeded,
+                        gas: 300000
                     });
                 console.log(`get oracle indexed with id ${idxAccountOracle}`);
-                
+
                 let oracleIndexes = await config.flightSuretyApp.getMyIndexes.call(
-                    { 
-                        from: accounts[idxAccountOracle] 
+                    {
+                        from: accounts[idxAccountOracle]
                     });
                 assert.equal(oracleIndexes.length, 3, 'Oracle should be registered with three indexes');
             }
         });
 
-    /*it("(oracle) Simulating server",
+    it("(oracle) Simulating server",
         //Server will loop through all registered oracles, identify those oracles for which the OracleRequest event applies,
         // and respond by calling into FlightSuretyApp contract with random status code"
         async () => {
@@ -704,11 +713,12 @@ contract('Flight Surety Tests', async (accounts) => {
 
             // Submit a request for oracles to get status information for a flight
             await config.flightSuretyApp.fetchFlightStatus(_airline, _flight, _timestamp);
+
             const TEST_ORACLES_COUNT = 10;
             const OFFSET = 10;
             const STATUS_CODE_LATE_AIRLINE = 20;
 
-            //idxAccountOracle = accounts dedicated to oracle 7 8 9
+            //idxAccountOracle = accounts dedicated to oracle
             for (let idxAccountOracle = OFFSET;
                 idxAccountOracle < (TEST_ORACLES_COUNT + OFFSET);
                 idxAccountOracle++) {
@@ -721,36 +731,64 @@ contract('Flight Surety Tests', async (accounts) => {
                 //oracleIndexes = oracle indexes (random number generated in smart contract)
                 for (let idx = 0; idx < 3; idx++) {
                     try {
-                        
-                        console.log(`submit response STATUS_CODE_LATE_AIRLINE 
-                            with info 
-                            
-                            idxAccountOracle : ${idxAccountOracle},
-                            oracleIndexes : ${JSON.stringify(oracleIndexes)},
-                            oracleIndexes[idx] ${oracleIndexes[idx]}
-                        `
-                        
-                        //    accounts[idxAccountOracle] : ${accounts[idxAccountOracle]},
-                        //    accounts : ${accounts},
-                        
-                        );
 
-                        await config.flightSuretyApp.submitOracleResponse(
+                        let _isOpen = await config.flightSuretyApp.isOpenOracleResponse(
                             oracleIndexes[idx],
                             _airline,
                             _flight,
-                            _timestamp,
-                            STATUS_CODE_LATE_AIRLINE,
-                            {
-                                from: accounts[idxAccountOracle]
-                            });
+                            _timestamp
+                        );
+
+                        //console.log("_isOpen : ", _isOpen)
+                        
+                        if (_isOpen) {
+                            try {
+                                
+                                await config.flightSuretyData.authorizeCaller(accounts[idxAccountOracle]);
+                                let isAuthorized = await config.flightSuretyData.isAuthorizedCaller(accounts[idxAccountOracle]);
+                                console.log(`is authorized caller :${isAuthorized}`);
+                                
+                                console.log(`submit response STATUS_CODE_LATE_AIRLINE 
+                                airline : ${_airline}
+                                flight : ${_flight}
+                                accountOracle : ${accounts[idxAccountOracle]}
+                                `
+                                );
+                                /*
+                                with info 
+                                    accountOracle : ${accounts[idxAccountOracle]}
+                                    airline : ${_airline}
+                                    flight : ${_flight}
+                                    _timestamp : ${_timestamp}
+                                    idxAccountOracle : ${idxAccountOracle},
+                                    oracleIndexes : ${JSON.stringify(oracleIndexes)},
+                                    oracleIndexes[idx] ${oracleIndexes[idx]}
+                                    isAuthorized: ${isAuthorized}
+                                */
+
+                                await config.flightSuretyApp.submitOracleResponse(
+                                    oracleIndexes[idx],
+                                    _airline,
+                                    _flight,
+                                    _timestamp,
+                                    STATUS_CODE_LATE_AIRLINE,
+                                    accounts[idxAccountOracle],
+                                    {
+                                        from: accounts[idxAccountOracle]
+                                    });
+                                
+                            } catch (error) {
+                                console.log("Error into submit oracle Response!", error)
+                            }
+                        }
                     } catch (e) {
-                        console.log(`Error
+                        // someone will be accepted cause of random index
+                        /*console.log(`Error
                         idx : ${idx}, 
                         oracleIndexes[idx] : ${oracleIndexes[idx]},
                         flight :  ${_flight}, 
                         timestamp : ${_timestamp},
-                        error cause : ${e}`);
+                        error cause : ${e}`);*/
                     }
                 }
             }
@@ -762,14 +800,29 @@ contract('Flight Surety Tests', async (accounts) => {
                 _airline,
                 _flight,
                 passenger1);
-            let flightStatus = await config.flightSuretyData.getFlightStatus(_airline, _flight);
 
+            
+            console.log("airline", _airline);
+            console.log("fligth", _flight);
             console.log(`checkAirlineExists : ${checkAirlineExists}`);
             console.log(`checkFlightExists : ${checkFlightExists}`);
             console.log(`isPassenger : ${isPassenger}`);
+            
+            let flightinfo = await config.flightSuretyData.getFlightInfo(_airline, _flight);
+            console.log(`flightinfo BEFORE : ${flightinfo.toString()}`);
 
-            console.log(`flightStatus : ${flightStatus}`);
+            await config.flightSuretyData.processFlightStatus(
+                _airline, 
+                _flight,
+                STATUS_CODE_LATE_AIRLINE,
+                _timestamp,
+                _airline);
+            flightinfo = await config.flightSuretyData.getFlightInfo(_airline, _flight);
+            console.log(`flightinfo : ${flightinfo.toString()}`);
+
+            let flightStatus = await config.flightSuretyData.getFlightStatus(_airline, _flight);
+            console.log(`flightStatus : ${flightStatus.toString()}`);
             assert.equal(STATUS_CODE_LATE_AIRLINE, flightStatus, 'Oracle didnt change status');
         });
-*/
+
 });

@@ -35,13 +35,33 @@ export default class Contract {
             const balance = await this.web3.eth.getBalance(accounts[0]);
             console.log("balance", this.web3.utils.fromWei(balance, "ether"));
 
-            this.owner = accounts[0];
-
             this.accounts = accounts;
+            this.owner = accounts[0];
             // console.log(this.accounts);
 
             this.airlines.push(accounts[1]);
             this.airlines.push(accounts[2]);
+
+            console.log("Start authorize owner")
+            
+            var self = this;
+            console.log("this.flightSuretyData",this.flightSuretyData);
+
+            this.flightSuretyData
+            .methods
+            //.authorizeCaller(this.owner)
+            //.isAuthorizedCaller(self.owner)
+            .getContractOwner()
+            .call(
+                {
+                    from:self.owner
+                }, (error, result) => {
+                    if(error) {
+                        console.log("Error into auth : ", error, self.owner)
+                    } else {
+                        console.log("Is authorized :" , result)
+                    }
+            });
 
             this.passengers.push(accounts[3]);
             this.passengers.push(accounts[4]);
@@ -90,7 +110,7 @@ export default class Contract {
         .authorizeCaller(payload.addressToAuthorize)
         .send(
             {
-                from:self.owner
+                from: self.owner
             }, (error, result) => {
                 callback(error, payload);
         });

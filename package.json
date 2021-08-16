@@ -36,7 +36,7 @@
     "style-loader": "^0.23.1",
     "superstatic": "6.0.3",
     "truffle": "5.0.2",
-    "truffle-hdwallet-provider": "1.0.2",
+    "truffle-hdwallet-provider": "1.0.8",
     "web3": "^1.2.6",
     "webpack": "^4.35.2",
     "webpack-cli": "^3.3.6",
@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "@truffle/debugger": "^9.1.8",
+    "@truffle/hdwallet-provider": "^1.4.3",
     "js-yaml": "^4.1.0",
     "replace-in-file": "^6.2.0"
   }

@@ -90,7 +90,7 @@ contract FlightSuretyApp {
 
     event BoughtInsuranceEvent(uint _numberinsurance);
 
-    event ProcessedFlightEvent(string _flight);
+    event ProcessedFlightEvent(uint8 _status);
 
     event FundedEvent(address _addressAirline);
 
@@ -227,18 +227,24 @@ contract FlightSuretyApp {
     * @dev Called after oracle has updated flight status
     *
     */  
-    function processFlightStatus
+    function _processFlightStatus
     (
         address _airline,
-        string memory _flight,
+        string _flight,
         uint256 _timestamp,
-        uint8 _statusCode
+        uint8 _statusCode,
+        address oracleAddress
     )
         internal
         requireIsOperational
     {
-        flightSuretyData.processFlightStatus(_airline, _flight, _timestamp, _statusCode);
-        emit ProcessedFlightEvent(_flight);
+        flightSuretyData.processFlightStatus(
+                _airline, 
+                _flight, 
+                _timestamp, 
+                _statusCode, 
+                oracleAddress);
+        emit ProcessedFlightEvent(_statusCode);
     }
 
     /*
@@ -272,6 +278,18 @@ contract FlightSuretyApp {
 
         emit OracleRequest(index, airline, flight, timestamp);
     } 
+
+    function isOpenOracleResponse(
+        uint8 _index, 
+        address _airline, 
+        string _flight, 
+        uint _timestamp) 
+    external
+    view 
+    returns (bool) {
+        bytes32 key = keccak256(abi.encodePacked(_index, _airline, _flight, _timestamp));
+        return oracleResponses[key].isOpen;
+    }
 
     function isOracleAddress(address _addressOracle)
     external
@@ -349,7 +367,8 @@ contract FlightSuretyApp {
     uint256 public constant REGISTRATION_FEE = 1 ether;
 
     // Number of oracles that must respond for valid status
-    uint256 private constant MIN_RESPONSES = 3;
+    // for test moved to 1 from 3
+    uint256 private constant MIN_RESPONSES = 1;
 
 
     struct Oracle {
@@ -427,11 +446,16 @@ contract FlightSuretyApp {
                             address airline,
                             string flight,
                             uint256 timestamp,
-                            uint8 statusCode
+                            uint8 statusCode,
+                            address oracleAddress
                         )
                         external
     {
-        require((oracles[msg.sender].indexes[0] == index) || (oracles[msg.sender].indexes[1] == index) || (oracles[msg.sender].indexes[2] == index), "Index does not match oracle request");
+        require(
+            (oracles[msg.sender].indexes[0] == index) || 
+            (oracles[msg.sender].indexes[1] == index) || 
+            (oracles[msg.sender].indexes[2] == index), 
+            "Index does not match oracle request");
 
 
         bytes32 key = keccak256(abi.encodePacked(index, airline, flight, timestamp)); 
@@ -443,11 +467,10 @@ contract FlightSuretyApp {
         // oracles respond with the *** same *** information
         emit OracleReport(airline, flight, timestamp, statusCode);
         if (oracleResponses[key].responses[statusCode].length >= MIN_RESPONSES) {
-
             emit FlightStatusInfo(airline, flight, timestamp, statusCode);
 
             // Handle flight status as appropriate
-            processFlightStatus(airline, flight, timestamp, statusCode);
+            _processFlightStatus(airline, flight, timestamp, statusCode, oracleAddress);
         }
     }
 
@@ -575,7 +598,8 @@ contract FlightSuretyData {
         address _addressAirline, 
         string _flight, 
         uint _timestamp, 
-        uint _status)
+        uint _status,
+        address _addressOracle)
     external;
     
     function isAirline( address _addressAirline)
