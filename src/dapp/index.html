@@ -32,6 +32,13 @@
             </btn>
         </div>
         <div class="row margin-20">
+            <label class="form">IsAuthorized</label> 
+            <input type="text" id="IsAuthorized_address"> 
+            <btn class="btn btn-primary" id="IsAuthorized_authorizeAddress">
+                Authorize Address
+            </btn>
+        </div>
+        <div class="row margin-20">
             <label class="form">Airline</label> 
             <input type="text" id="Airline_airlineAddress"> 
             <btn class="btn btn-primary" id="Airline_registerAirline">
@@ -49,18 +56,18 @@
             <label class="form">Airline</label> 
             <input type="text" id="Flight_airlineAddress">
             <label class="form">Flight</label> 
-            <input type="text" id="Flight_flightNumber"> 
+            <input type="text" id="Flight_flightCode"> 
             <btn class="btn btn-primary" id="Flight_registerFlight">
                 registerFlight
             </btn>
         </div>
         <div class="row margin-20">
             <label class="form">Airline</label> 
-            <input type="text" id="Oracle_airlineAddress">
+            <input type="text" id="Fetch_airlineAddress">
             <label class="form">Flight</label> 
-            <input type="text" id="Oracle_flightNumber"> 
-            <btn class="btn btn-primary" id="Oracle_submitOracle">
-                Submit to Oracles</btn>
+            <input type="text" id="Fetch_flightCode"> 
+            <btn class="btn btn-primary" id="Fetch_flightStatus">
+                Fetch flight status</btn>
         </div>
         <div class="row margin-20">
             <tr class="spaceUnder">
@@ -68,7 +75,7 @@
                     <input type="text" id="Passenger_airlineAddress">
                 </th>
                 <th><label class="form">Flight</label> 
-                    <input type="text" id="Passenger_flightNumber">  
+                    <input type="text" id="Passenger_flightCode">  
                 <th>
                     <label class="form">passengerAddress</label>
                     <input type="text" id="Passenger_passengerAddress">
@@ -90,13 +97,20 @@
             <label class="form">Airline</label> 
             <input type="text" id="Buy_airlineAddress">
             <label class="form">Flight</label> 
-            <input type="text" id="Buy_flightNumber">
+            <input type="text" id="Buy_flightCode">
             <label class="form">Passenger</label> 
             <input type="text" id="Buy_passengerAddress"> 
             <label class="form">Value</label> 
             <input type="text" id="Buy_value">
             <btn class="btn btn-primary" id="Buy_insurance">
                 Buy Insurance</btn>
+        </div>
+
+        <div class="row margin-20">
+            <label class="form">Passenger</label> 
+            <input type="text" id="Pay_passengerAddress"> 
+            <btn class="btn btn-primary" id="Pay_insurance">
+                Pay </btn>
         </div>
     </main>
 

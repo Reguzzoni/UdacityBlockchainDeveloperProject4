@@ -7,12 +7,13 @@ pragma solidity ^0.4.25;
 
 // app logic and oracles code
 import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "./oraclize.sol";
 //import "./FlightSuretyData.sol";
 
 /************************************************** */
 /* FlightSurety Smart Contract                      */
 /************************************************** */
-contract FlightSuretyApp {
+contract FlightSuretyApp is usingOraclize {
     using SafeMath for uint256; // Allow SafeMath functions to be called for all uint256 types (similar to "prototype" in Javascript)
 
     /********************************************************************************************/
@@ -153,8 +154,8 @@ contract FlightSuretyApp {
         bool isAirline = flightSuretyData.isAirline(msg.sender);
         bool isFunded = flightSuretyData.isFund(msg.sender);
 
-        require(isAirline, "Airline must exist to register a new airline");
-        require(isFunded, "Airline must be funded to register a new airline");
+        require(isAirline, strConcat("Airline must exist to register a new airline ", addressToString(msg.sender)));
+        require(isFunded, strConcat("Airline must be funded to register a new airline ", addressToString(msg.sender)));
 
         uint countAirlines = flightSuretyData.getAirlinesCount();
         if(countAirlines < M) {
@@ -198,12 +199,13 @@ contract FlightSuretyApp {
     */  
     function registerFlight(
         address _addressAirline,
-        string _flight
+        string _flight,
+        address _msgSender
     )
         requireIsOperational 
         external                        
     {
-        flightSuretyData.registerFlight(_addressAirline, _flight);
+        flightSuretyData.registerFlight(_addressAirline, _flight, _msgSender);
         emit RegisterFligthEvent(_addressAirline);
     }
 
@@ -246,16 +248,6 @@ contract FlightSuretyApp {
                 oracleAddress);
         emit ProcessedFlightEvent(_statusCode);
     }
-
-    /*
-    function getAirlines ()
-        external 
-        requireIsOperational
-        returns (address[])
-    {
-        return flightSuretyData.getAirlines();
-    }
-    */
 
     // Generate a request for oracles to fetch flight information
     function fetchFlightStatus
@@ -357,7 +349,6 @@ contract FlightSuretyApp {
         return flightSuretyData.isAirline(_addressAirline);
     }
 
-
 // region ORACLE MANAGEMENT
 
     // Incremented to add pseudo-randomness at various points
@@ -402,6 +393,7 @@ contract FlightSuretyApp {
     // they fetch data and submit a response
     event OracleRequest(uint8 index, address airline, string flight, uint256 timestamp);
 
+    //event TriggerOracleEvent(uint8 index, address airline, string flight, uint256 timestamp, uint8 statusCode);
 
     // Register an oracle with the contract
     function registerOracle
@@ -432,9 +424,6 @@ contract FlightSuretyApp {
 
         return oracles[msg.sender].indexes;
     }
-
-
-
 
     // Called by oracle when a response is available to an outstanding request
     // For the response to be accepted, there must be a pending request that is open
@@ -473,7 +462,6 @@ contract FlightSuretyApp {
             _processFlightStatus(airline, flight, timestamp, statusCode, oracleAddress);
         }
     }
-
 
     function getFlightKey
                         (
@@ -532,13 +520,85 @@ contract FlightSuretyApp {
         return random;
     }
 
+    function getContractOwner
+    ()
+    external
+    view
+    returns (string)
+    {
+        return flightSuretyData.getContractOwner();
+    }
+
+    function authorizeCaller(
+        address _addressToAuth
+    ) 
+    external
+    {
+        flightSuretyData.authorizeCaller(_addressToAuth);
+    }
+
+    // conversion function tiped by stackoverflow
+    function addressToString(address _address)  
+    pure 
+    internal
+    returns (string memory _uintAsString) {
+        bytes32 value = bytes32(uint256(_address));
+        bytes memory alphabet = "0123456789abcdef";
+
+        bytes memory str = new bytes(51);
+        str[0] = "0";
+        str[1] = "x";
+        for (uint i = 0; i < 20; i++) {
+            str[2+i*2] = alphabet[uint(uint8(value[i + 12] >> 4))];
+            str[3+i*2] = alphabet[uint(uint8(value[i + 12] & 0x0f))];
+        }
+        return string(str);
+    }
+
+
+    // conversion function tiped by stackoverflow AS PROJECT 5
+    function uintToString(uint v) 
+    pure 
+    internal
+    returns (string str) {
+        uint maxlength = 100;
+        bytes memory reversed = new bytes(maxlength);
+        uint i = 0;
+        while (v != 0) {
+            uint remainder = v % 10;
+            v = v / 10;
+            reversed[i++] = byte(48 + remainder);
+        }
+        bytes memory s = new bytes(i + 1);
+        for (uint j = 0; j <= i; j++) {
+            s[j] = reversed[i - j];
+        }
+        str = string(s);
+    }
+
+    function getAirlinesCount()
+    external
+    view
+    returns (uint) {
+        return flightSuretyData.getAirlinesCount();
+    }
+
+    function getAirlineAddressStringByNumber(uint _numberAirline)
+    public
+    view 
+    returns (string _addressAirline) {
+        return flightSuretyData.getAirlineAddressStringByNumber(_numberAirline);
+    }
+
+    function isAuthorizedCaller(address _addressToAuth) 
+        external 
+        view
+    returns (bool) {
+        return flightSuretyData.isAuthorizedCaller(_addressToAuth);
+    }
 // endregion
 
 } 
-
-/*contract ExerciseC6C {
-    function updateEmployee(string id, uint256 sales, uint256 bonus) external;
-}*/
  
 contract FlightSuretyData {
     
@@ -560,7 +620,8 @@ contract FlightSuretyData {
 
     function registerFlight(
         address _addressAirline,
-        string _flight
+        string _flight,
+        address _msgSender
     ) external;
 
     function registerAirline ( 
@@ -625,94 +686,19 @@ contract FlightSuretyData {
 
     function authorizeCaller(address _addressToAuth) 
     external;
-}
 
-
-
-    // needs getAirlines to registerAirline with consensus
-    /*function getAirlines()
+    function getContractOwner()
     external
+    view
+    returns (string);
+
+    function getAirlineAddressStringByNumber(uint _numberAirline)
+    public
     view 
-    returns (address[] _addressedAirline);
-*/
-    // needs isAirline cause test require this
-    //let result = await config.flightSuretyData.isAirline.call(newAirline); 
-    
+    returns (string _addressAirline);
 
-    // get airline by address if exists
-    /*function getAirlineNumberByAddress(address[] _addressedAirline)
-    external
-    view 
-    returns (uint);*/
-
-    // check if is flight 
-    /*function isFlight(
-        address _addressAirline,
-        string _flight
-    ) 
-    external 
-    view 
-    returns(bool);*/
-
-    // get flight counter
-    /*function getFlightCount()
-    external 
-    view 
-    returns(uint);
-    */
-
-    // get passenger count by flight
-    /*function getPassengerCountByFlight(
-        address _addressAirline,
-        string _flight
-    )
-    external 
-    view ;*/
-
-    // check is passenger
-    /*function isPassenger(
-        address _addressAirline,
-        string _flight,
-        address _addressPassenger
-    ) 
-    external 
-    view 
-    returns(bool);*/
-
-    // check has insurance
-    /*function hasInsurance(
-        address _addressAirline,
-        string  _flight,
-        address _addressPassenger
-    )
-        external
-        view
-    returns (bool);*/
-
-    /*function isAuthorizedCaller(address _addressToAuth) 
+    function isAuthorizedCaller(address _addressToAuth) 
         external 
         view
-    returns (bool);*/
-
-    /*function getInsurance(
-        address _addressAirline,
-        string  _flight,
-        address _addressPassenger
-    )
-        external
-        view
-    returns (uint);*/
-
-    /*function isPayed(
-        address _addressAirline,
-        string  _flight,
-        address _addressPassenger
-    )
-        external
-        view
-    returns (bool);*/
-
-    /*function getCountInsurance()
-        external
-        view
-    returns (uint);*/
+    returns (bool);
+}

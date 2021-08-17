@@ -5,6 +5,8 @@ const fs = require('fs');
 module.exports = function(deployer, network, accounts) {
     //let firstAirline = '0xf17f52151EbEF6C7334FAD080c5704D77216b732';
     let firstAirline = accounts[1];
+    let secondAirline = accounts[2];
+    let firstPassenger = accounts[3];
 
     //authorize app contract
     let flightSuretyData, flightSuretyApp;
@@ -26,13 +28,23 @@ module.exports = function(deployer, network, accounts) {
                     }
                     fs.writeFileSync(__dirname + '/../src/dapp/config.json',JSON.stringify(config, null, '\t'), 'utf-8');
                     fs.writeFileSync(__dirname + '/../src/server/config.json',JSON.stringify(config, null, '\t'), 'utf-8');
-
+                    
+                    // DEBUG
+                    /*
                     flightSuretyData
                         .getContractOwner()
                         .then(result => 
                         console.log("contractOwner : ", result));
-
-                    return flightSuretyData.authorizeCaller(flightSuretyApp.address);
+                    */
+                   
+                    // authorize airlines and addresses (firstAirline is authorized in constructor)
+                    flightSuretyData.authorizeCaller(flightSuretyApp.address);
+                    flightSuretyData.authorizeCaller(flightSuretyData.address);
+                    // needed to register flight
+                    flightSuretyData.authorizeCaller(firstAirline);
+                    flightSuretyData.authorizeCaller(secondAirline);
+                    // passenger to buy insurance
+                    flightSuretyData.authorizeCaller(firstPassenger);
                 });
     });
 }

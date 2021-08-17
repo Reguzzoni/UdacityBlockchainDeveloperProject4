@@ -173,12 +173,10 @@ contract FlightSuretyData is usingOraclize {
         _registerAirline(_addressAirline);
         // first airline already funded at start
         mapAirline[_addressAirline].isFunded = true;
-        //authorize airline
-        mapAuthorized[_addressAirline] = 1;
     }
 
     function getContractOwner()
-    public
+    external
     view
     returns (string) {
         return addressToString(contractOwner);
@@ -207,37 +205,21 @@ contract FlightSuretyData is usingOraclize {
     */
     modifier requireContractOwner()
     {
-        require(msg.sender == contractOwner, "Caller is not contract owner");
+        require(msg.sender == contractOwner, 
+            strConcat("Caller is not contract owner : ",
+            addressToString(msg.sender),
+            addressToString(contractOwner)));
         _;
     }
 
     modifier requireAuthorized(address _msgSender) {
-        require(mapAuthorized[_msgSender] == 1, "Caller is not authorized");
+        require(mapAuthorized[_msgSender] == 1, strConcat("Caller is not authorized", 
+            addressToString(_msgSender)));
         _;
     }
 
     // removed but could be a good idea to have timer on registering and dont allow double entry
     /*
-
-    // RATE LIMITING
-    uint256 private enabled = block.timestamp;
-
-    // RE-ENTRANCY GUARD
-    uint256 private counter = 1;
-
-    modifier rateLimit(uint256 time) {
-        require(block.timestamp >= enabled, "Rate limiting in effect");
-        enabled = enabled.add(time);
-        _;
-    }
-
-    modifier entrancyGuard() {
-        counter = counter.add(1);
-        uint256 guard = counter;
-        _;
-        require(guard == counter, "That is not allowed");
-    }
-    */
 
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
@@ -296,9 +278,8 @@ contract FlightSuretyData is usingOraclize {
     }
 
     function isAuthorizedCaller(address _addressToAuth) 
-        external 
+        external
         view
-    requireContractOwner 
     returns (bool)
     {
         return mapAuthorized[_addressToAuth] == 1;
@@ -340,19 +321,7 @@ contract FlightSuretyData is usingOraclize {
 
         uint _countPassengers = mapFlight[_flightKey].countPassengers;
         _countPassengers = _countPassengers.add(1);
-        /*
-        FlightInsurance memory _insurance;
-
-        Passenger memory _passenger = Passenger({
-            passengerAddress : _addressPassenger,
-            name : _name,
-            surname: _surname,
-            insurance : _insurance,
-            numberPassenger : countPassengers
-        });
-        
-        mapFlight[_flightKey].mapPassenger[_addressPassenger] = _passenger;
-        */
+ 
         mapFlight[_flightKey].mapPassenger[_addressPassenger].passengerAddress = _addressPassenger;
         mapFlight[_flightKey].mapPassenger[_addressPassenger].name = _name;
         mapFlight[_flightKey].mapPassenger[_addressPassenger].surname = _surname;
@@ -394,10 +363,11 @@ contract FlightSuretyData is usingOraclize {
     
     function registerFlight(
         address _addressAirline,
-        string _flight
+        string _flight,
+        address _msgSender
     ) external
         requireIsOperational 
-        requireAuthorized(_addressAirline)
+        requireAuthorized(_msgSender)
     {
         bytes32 _flightKey = getFlightKeyOfMap(_addressAirline, _flight);
         require(! (mapFlight[_flightKey].numberFlight > 0), "Flight has already been registered");
@@ -519,6 +489,19 @@ contract FlightSuretyData is usingOraclize {
         }
     }
 
+    function getAirlineAddressStringByNumber(uint _numberAirline)
+    public
+    view 
+    returns (string _addressAirline) {
+        for (uint idxAirlines = 1 ;
+            idxAirlines <= countAirline; 
+            idxAirlines++) {
+                if(idxAirlines == _numberAirline) {
+                    return addressToString(mapCountToAddressAirline[idxAirlines]);
+                }
+        }
+    }
+
     function isFund(address _addressAirline)
     public
     view 
@@ -568,6 +551,7 @@ contract FlightSuretyData is usingOraclize {
     payable 
     requireIsOperational 
     {
+        require(!mapAirline[_addressAirline].isFunded, "Airline already funded");
         mapAirline[_addressAirline].isFunded = true;
         emit FundedEvent(_addressAirline);
     }
@@ -627,9 +611,6 @@ contract FlightSuretyData is usingOraclize {
         require(mapFlight[_flightKey].numberFlight > 0, "Flight is not registered");
         require(mapFlight[_flightKey].mapPassenger[_passengerAddress].numberPassenger > 0, 
             "Passenger is not registered");
-
-        /*require(!(mapFlight[_flightKey].mapPassenger[_passengerAddress].insurance.isPayed),
-            "Insurance is already payed!");*/
 
         mapFlight[_flightKey].mapPassenger[_passengerAddress].insurance.isPayed = true;
 

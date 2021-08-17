@@ -8,32 +8,67 @@ export default class Contract {
 
         var config = Config[network];
         this.web3 = new Web3(new Web3.providers.HttpProvider(config.url));
-        this.flightSuretyApp = new this.web3.eth.Contract(FlightSuretyApp.abi, config.appAddress);
-        this.flightSuretyData = new this.web3.eth.Contract(FlightSuretyData.abi, config.appAddress);
-        console.log(`config.appAddress ${config.appAddress}`);
+        this.flightSuretyApp = "";
+        this.flightSuretyData = "";
         this.initialize(callback);
         this.owner = null;
         this.airlines = [];
         this.passengers = [];
         this.appAddress = config.appAddress;
+        this.dataAddress = config.dataAddress;
     }
 
     initialize(callback) {
-        this.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:7545"));
-        console.log("local ganache provider");
+        /*if (typeof web3 !== 'undefined') {
+            console.log("current provider ", web3.currentProvider);
+            web3 = new Web3(web3.currentProvider);
+        } else {
+            console.log("local ganache provider");
+            this.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:7545"));
+        }*/
+        // Modern DApp Browsers -  it s a new way to connect metamask on web3 cause It's deprecated 
+        if (window.ethereum) {
+            web3 = new Web3(window.ethereum);
+            try { 
+            window.ethereum.enable().then(function() {
+                // User has allowed account access to DApp...
+            });
+            } catch(e) {
+            // User has denied account access to DApp...
+            }
+        }
+        // Legacy DApp Browsers
+        else if (window.web3) {
+            web3 = new Web3(web3.currentProvider);
+        }
+        // Non-DApp Browsers
+        else {
+            alert('You have to install MetaMask !');
+        }
 
         this.web3.eth.net.isListening()
         .then(() => console.log('is connected'))
-        .catch(e => console.log('Wow. Something went wrong: '+ e));
+        .catch(e => console.log('Failed connection: '+ e));
         
         console.log("this.web3 : ", this.web3);
 
         (async () => {
             const accounts = await this.web3.eth.getAccounts();
             console.log(accounts);
-          
-            const balance = await this.web3.eth.getBalance(accounts[0]);
-            console.log("balance", this.web3.utils.fromWei(balance, "ether"));
+            
+            /*
+            // DEBUG : CHECK BALANCE OF AIRLINES
+            const balance0 = await this.web3.eth.getBalance(accounts[0]);
+            console.log("balance0", this.web3.utils.fromWei(balance0, "ether"));
+
+            const balance1 = await this.web3.eth.getBalance(accounts[1]);
+            console.log("balance1", this.web3.utils.fromWei(balance1, "ether"));
+            
+            const balance2 = await this.web3.eth.getBalance(accounts[2]);
+            console.log("balance2", this.web3.utils.fromWei(balance2, "ether"));
+            */
+            this.flightSuretyApp = new this.web3.eth.Contract(FlightSuretyApp.abi, this.appAddress);
+            this.flightSuretyData = new this.web3.eth.Contract(FlightSuretyData.abi, this.dataAddress);
 
             this.accounts = accounts;
             this.owner = accounts[0];
@@ -47,31 +82,29 @@ export default class Contract {
             var self = this;
             console.log("this.flightSuretyData",this.flightSuretyData);
 
-            this.flightSuretyData
+            //DEBUG
+            this.flightSuretyApp
             .methods
-            //.authorizeCaller(this.owner)
-            //.isAuthorizedCaller(self.owner)
+            // CHECK CONTRACT OWNER
             .getContractOwner()
-            .call(
-                {
-                    from:self.owner
-                }, (error, result) => {
+            .call((error, result) => {
                     if(error) {
                         console.log("Error into auth : ", error, self.owner)
                     } else {
                         console.log("Is authorized :" , result)
-                    }
+                        
+                        this.passengers.push(accounts[3]);
+                        this.passengers.push(accounts[4]);
+
+                        console.log("assigned airlines and passengers");
+
+                        console.log("this.flightSuretyApp", this.flightSuretyApp);
+                        console.log("this.flightSuretyData", this.flightSuretyData);
+
+                        callback();
+                }
             });
 
-            this.passengers.push(accounts[3]);
-            this.passengers.push(accounts[4]);
-
-            console.log("assigned airlines and passengers");
-
-            console.log("this.flightSuretyApp", this.flightSuretyApp);
-            console.log("this.flightSuretyData", this.flightSuretyData);
-
-            callback();
           })();
     }
 
@@ -96,22 +129,43 @@ export default class Contract {
             });
     }
 
+    isAuthorizeAddress(addressToCheckAuthorize, callback) {
+        var self = this;
+
+        var payload = {
+            addressToCheckAuthorize : addressToCheckAuthorize,
+            result : false
+        }
+
+        console.log("addressToCheckAuthorize :", addressToCheckAuthorize)
+        this.flightSuretyData.methods
+        .isAuthorizedCaller(payload.addressToCheckAuthorize)
+        .call((error, result) => {
+                payload.result = result;
+                callback(error, payload);
+        });
+    }
+
     authorizeAddress(addressToAuthorize, callback) {
         var self = this;
-        console.log(`
-            authorize with input 
-            address: ${addressToAuthorize}`);
 
-            var payload = {
+        var payload = {
             addressToAuthorize : addressToAuthorize
         }
 
         this.flightSuretyData.methods
         .authorizeCaller(payload.addressToAuthorize)
-        .send(
+        .call(
             {
-                from: self.owner
+                from: this.accounts[0]
             }, (error, result) => {
+                console.log(`
+                    authorize with input 
+                    result: ${result},
+                    addressToAuthorize: ${payload.addressToAuthorize}
+                    this.accounts[1]: ${  this.accounts[1]},
+                    this.owner: ${this.owner}
+                `);
                 callback(error, payload);
         });
     }
@@ -124,11 +178,20 @@ export default class Contract {
             var payload = {
                 airline : airlineAddress
             } 
-
+        this.flightSuretyApp.methods.
+            getAirlineAddressStringByNumber(1)
+            .call((error, result) => 
+                console.log(error, result));
+        
+        
         this.flightSuretyApp.methods
             .registerAirline(payload.airline)
             .send(
-                {from:this.owner}, (error, result) => {
+                {
+                    from: this.accounts[1]
+                    , gas:300000
+                }
+                , (error, result) => {
                     callback(error, payload);
             });
     }
@@ -146,8 +209,16 @@ export default class Contract {
         } 
 
         this.flightSuretyApp.methods
-            .registerFlight(payload.airline, payload.flight)
-            .send({ from: self.owner}, (error, result) => {
+            .registerFlight(
+                payload.airline,
+                payload.flight,
+                payload.airline
+            )
+            .send(
+            { 
+                from: payload.airline
+                , gas:300000
+            }, (error, result) => {
                 callback(error, payload);
             });
     }
@@ -155,10 +226,10 @@ export default class Contract {
     fund( airlineAdress, funds, callback) {
         console.log(`airline fund with input 
             airline: ${airlineAdress} and funds :${funds}`);
-        var self = this;
+
         var payload = {
             airline : airlineAdress,
-            whoFund : airlineAdress,
+            whoFund : airlineAdress,//this.accounts[1],
             value : this.web3.utils.toWei(funds.toString(), "ether")
         } 
 
@@ -168,7 +239,7 @@ export default class Contract {
             .send({ 
                 from: payload.whoFund,
                 value: payload.value,
-                gas: 30000
+                gas: 550000
             },
             (error, result) => {
                 callback(error, payload);
@@ -199,7 +270,11 @@ export default class Contract {
                  payload.passengerAddress,
                  payload.passengerName,
                  payload.passengerSurname)
-            .send({ from: self.owner}, (error, result) => {
+            .send(
+                { 
+                    from: self.owner,
+                    gas:300000
+                }, (error, result) => {
                 callback(error, payload);
             });
     }
@@ -215,7 +290,7 @@ export default class Contract {
         } 
 
         self.flightSuretyApp.methods
-            .buy(payload._addressAirline,
+            .buy(payload.airline,
                  payload.flight,
                   payload.passengerAddress
                   )
@@ -223,8 +298,24 @@ export default class Contract {
             { 
                 from: payload.passengerAddress, 
                 value: priceInWei,
-                gas: 500000,
-                gasPrice: 1
+                gas: 550000
+            }, (error, result) => {
+                callback(error, payload);
+            });
+    }
+
+    pay(passenger, callback) {
+        var self = this;
+        var payload = {
+            passengerAddress: passenger
+        } 
+
+        self.flightSuretyApp.methods
+            .pay()
+            .send(
+            { 
+                from: payload.passengerAddress,
+                gas: 550000
             }, (error, result) => {
                 callback(error, payload);
             });

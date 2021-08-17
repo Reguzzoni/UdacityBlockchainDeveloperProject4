@@ -96,6 +96,8 @@ module.exports = {
       host: "127.0.0.1",     // Localhost (default: none)
       port: 7545,            // Standard Ethereum port (default: none)
       network_id: "*",       // Any network (default: none)
+      gas: 6721975, 
+      gasPrice: 20000000000, //From ganache-cli output
     },
 
     // Another network with more advanced options...
@@ -121,16 +123,14 @@ module.exports = {
 
     // manage network rinkeby - copied from lesson
     rinkeby: {
-      networkCheckTimeout: 100000,
-      provider: () => new HDWallet(
+      provider: () => new HDWalletProvider(
         getMnemonicKey(),
-        `https://rinkeby.infura.io/v3/${getInfuraKey()}`,
-        0, 50
+        `wss://mainnet.infura.io/ws/v3/${getInfuraKey()}`,
+        //0, 50
        ),
-      network_id: 4,       // rinkeby's id
-      gas: 450000,        // rinkeby has a lower block limit than mainnet
-      gasPrice: 400000,
-      gasLimit: 9007199254740991
+       network_id: 4,
+       //gas: 5500000,
+       //gasPrice: 10000000000,
     },
 
     // Useful for private networks
